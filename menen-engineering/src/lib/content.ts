@@ -1,25 +1,23 @@
-import { prisma } from './prisma';
 import { unstable_cache } from 'next/cache';
+import { prisma } from './prisma';
 
 export const getSiteContent = unstable_cache(
   async (key: string, fallback: string = '') => {
-    const entry = await prisma.siteContent.findUnique({
-      where: { key },
-    });
-    return entry ? entry.value : fallback;
+    try {
+      const client = prisma as any;
+      if (client.siteContent) {
+        const entry = await client.siteContent.findUnique({ where: { key } });
+        return entry ? entry.value : fallback;
+      }
+      if (client.contentBlock) {
+        const entry = await client.contentBlock.findUnique({ where: { key } });
+        return entry ? entry.value : fallback;
+      }
+      return fallback;
+    } catch {
+      return fallback;
+    }
   },
   ['site-content'],
-  { tags: ['content'], revalidate: 60 }
-);
-
-export const getAllSiteContent = unstable_cache(
-  async () => {
-    const entries = await prisma.siteContent.findMany();
-    return entries.reduce((acc, curr) => {
-      acc[curr.key] = curr.value;
-      return acc;
-    }, {} as Record<string, string>);
-  },
-  ['all-site-content'],
-  { tags: ['content'], revalidate: 60 }
+  { revalidate: 60 }
 );
