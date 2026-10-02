@@ -1,0 +1,76 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 
+  4 LUXURY ARCHITECTURAL PALETTES
+  1. OBSIDIAN & ARCHITECTURAL GOLD (Default)
+  2. BRUTALIST TITANIUM & ONYX
+  3. DRAFTING VELLUM & ULTRA-RICH 300% GOLD (Warm Pencil / Heavy Gold)
+  4. PRUSSIAN BLUEPRINT & PLATINUM
+*/
+
+:root,
+body[data-theme="OBSIDIAN_GOLD"] {
+  --theme-bg: #030712;         /* Deep Obsidian */
+  --theme-surface: #0b0f19;    /* Dark Charcoal */
+  --theme-card: #111827;       /* Slate Obsidian Card */
+  --theme-border: #1f2937;     /* Subdued Structural Border */
+  --theme-accent: #d4af37;     /* Architectural Pure Gold */
+  --theme-accent-hover: #b89628;
+  --theme-text-primary: #f9fafb;
+  --theme-text-secondary: #9ca3af;
+  --theme-text-muted: #6b7280;
+}
+
+body[data-theme="BRUTALIST_TITANIUM"] {
+  --theme-bg: #09090b;         /* Zinc Onyx */
+  --theme-surface: #141417;    /* Smoked Titanium */
+  --theme-card: #1c1c21;       /* Brushed Metal Card */
+  --theme-border: #2e2e38;     /* Titanium Steel Border */
+  --theme-accent: #e4e4e7;     /* Polished Platinum / White-Silver */
+  --theme-accent-hover: #ffffff;
+  --theme-text-primary: #fafafa;
+  --theme-text-secondary: #a1a1aa;
+  --theme-text-muted: #71717a;
+}
+
+/* 
+  WARM DRAFTING VELLUM & ULTRA SATURATED GOLD 
+  - Non-glare pencil/parchment background
+  - 300% Vivid Liquid Gold for buttons and highlights
+  - Graphite pencil/carbon typography
+*/
+body[data-theme="HIGHLAND_EMERALD"],
+body[data-theme="STUDIO_MINIMAL_WHITE"],
+body[data-theme="DRAFTING_VELLUM_GOLD"] {
+  --theme-bg: #f4efe6;         /* Natural Drafting Parchment / Warm Linen */
+  --theme-surface: #eae3d5;    /* Muted Sketch Surface / Pressed Vellum */
+  --theme-card: #faf6ee;       /* Soft Architectural Drawing Sheet */
+  --theme-border: #dcd1be;     /* Warm Graphite & Sand Seam Line */
+  --theme-accent: #f59e0b;     /* 300% Vivid Architectural Gold (Amber-Gold) */
+  --theme-accent-hover: #d97706; /* Deep Burnished Gold on Hover */
+  --theme-text-primary: #1c1917;   /* Graphite / Deep Pencil Charcoal */
+  --theme-text-secondary: #57534e; /* Medium 2B Pencil Lead Tone */
+  --theme-text-muted: #857f72;     /* Faint Technical Drafting Line Text */
+}
+
+body[data-theme="TECHNICAL_NAVY"] {
+  --theme-bg: #020b1e;         /* Midnight Technical Blue */
+  --theme-surface: #061536;    /* Deep Prussian Blueprint */
+  --theme-card: #0c1e4a;       /* Engineering Grid Card */
+  --theme-border: #163273;     /* CAD Line Border */
+  --theme-accent: #38bdf8;     /* Luminescent Blueprint Cyan */
+  --theme-accent-hover: #0ea5e9;
+  --theme-text-primary: #f0f9ff;
+  --theme-text-secondary: #bae6fd;
+  --theme-text-muted: #7dd3fc;
+}
+
+body {
+  background-color: var(--theme-bg);
+  color: var(--theme-text-primary);
+  min-height: 100vh;
+  transition: background-color 0.3s ease, color 0.3s ease;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+}

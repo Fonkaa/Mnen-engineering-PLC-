@@ -1,0 +1,129 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// -------------------------------------------------------------
+// 1. SITE-WIDE SETTINGS & 4 LUXURY THEMES
+// -------------------------------------------------------------
+enum LuxuryTheme {
+  OBSIDIAN_GOLD       // Deep slate 950 with golden champagne accents
+  BRUTALIST_TITANIUM  // Ultra-modern monochromatic zinc and titanium
+  HIGHLAND_EMERALD    // Rich deep Ethiopian emerald with warm copper
+  TECHNICAL_NAVY      // Midnight CAD blue with platinum glow
+}
+
+model SiteConfig {
+  id             String      @id @default("global_config")
+  activeTheme    LuxuryTheme @default(OBSIDIAN_GOLD)
+  companyName    String      @default("MENEN Engineering PLC")
+  legalCategory  String      @default("Category One Architectural & Engineering Firm")
+  motto          String      @default("It's all about commitment!")
+  primaryPhone   String      @default("+251 920 517 606")
+  secondaryPhone String      @default("+251 913 034 623")
+  primaryEmail   String      @default("habtamuengr@gmail.com")
+  officeAddress  String      @default("Wello Sefer, behind Garad Mall, GS Building, 2nd Floor Office @ Menen Engineering PLC, Addis Ababa, Ethiopia")
+  updatedAt      DateTime    @updatedAt
+}
+
+// -------------------------------------------------------------
+// 2. 100% DYNAMIC TEXT CMS (Every single word is editable)
+// -------------------------------------------------------------
+model DynamicContent {
+  id          String   @id @default(cuid())
+  key         String   @unique // e.g. "hero_title", "vision_statement", "policy_paragraph_1"
+  section     String   // e.g. "hero", "about", "mission", "vision", "values", "policies"
+  label       String   // Human-readable label for admin UI
+  value       String   @db.Text
+  updatedAt   DateTime @updatedAt
+}
+
+// -------------------------------------------------------------
+// 3. ADMIN AUTHENTICATION
+// -------------------------------------------------------------
+model AdminUser {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String   // Hashed with bcrypt
+  name      String
+  role      String   @default("ADMIN")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// -------------------------------------------------------------
+// 4. EMPLOYEE / WORKER PROFILES & PORTFOLIO
+// -------------------------------------------------------------
+model TeamMember {
+  id          String   @id @default(cuid())
+  name        String
+  roleTitle   String
+  department  String
+  credentials String
+  bio         String
+  avatarUrl   String?
+  linkedinUrl String?
+  email       String?
+  phone       String?
+  isExecutive Boolean  @default(false)
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// -------------------------------------------------------------
+// 5. PROJECTS & MULTIMEDIA (Images, Videos, Audios)
+// -------------------------------------------------------------
+enum ProjectStatus {
+  COMPLETED
+  UNDER_CONSTRUCTION
+  DESIGN_PHASE
+  DESIGN_PERMIT_PROCESS
+  LAND_ACQUISITION_PROCESS
+  BOQ_AND_TENDER
+  PROPOSAL
+}
+
+model Project {
+  id              String         @id @default(cuid())
+  slug            String         @unique
+  title           String         // e.g. "4B+G+M+23 MXD"
+  client          String         // e.g. "KK PLC"
+  associatedFirms String         @default("MENEN Engineering PLC")
+  location        String         @default("Addis Ababa")
+  category        String         // RES, APT, RLS, MXD, HSP, IND, HCR, EDU, RLG, LND, INT, STR
+  status          ProjectStatus  @default(UNDER_CONSTRUCTION)
+  scopeOfWork     String         @db.Text
+  awards          String?        // e.g. "1st Prize Awarded Schematic Design Project"
+  description     String?        @db.Text
+  featuredImage   String?        // If null, UI renders high-contrast blueprint CAD placeholder
+  featuredVideo   String?        // Walkthrough video / VR presentation URL
+  audioNarrative  String?        // Audio walkthrough / architectural presentation audio URL
+  order           Int            @default(0)
+  isFeatured      Boolean        @default(false)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+}
+
+// -------------------------------------------------------------
+// 6. CLIENT PROJECT BRIEF SUBMISSIONS
+// -------------------------------------------------------------
+model ProjectInquiry {
+  id              String   @id @default(cuid())
+  fullName        String
+  organization    String?
+  email           String
+  phone           String
+  projectType     String   // MXD, APT, HSP, RES, INT, etc.
+  location        String?
+  plotSize        String?  // e.g. "1,500 sqm"
+  scope           String   @db.Text
+  referenceVideo  String?  // Video link provided by client
+  referenceAudio  String?  // Voice note / audio link provided by client
+  status          String   @default("PENDING") // PENDING, REVIEWED, CONTACTED, ARCHIVED
+  createdAt       DateTime @default(now())
+}
