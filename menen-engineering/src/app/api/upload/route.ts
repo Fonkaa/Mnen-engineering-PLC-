@@ -30,18 +30,38 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'No file provided in form data' }, { status: 400 });
     }
 
-    // 2. Read arrayBuffer and convert safely to Buffer
+    // 2. Detect whether file is a PDF/document or image
+    const isPdfOrDoc = 
+      file.type === 'application/pdf' || 
+      file.name.toLowerCase().endsWith('.pdf') ||
+      file.name.toLowerCase().endsWith('.dwg') ||
+      file.name.toLowerCase().endsWith('.doc') ||
+      file.name.toLowerCase().endsWith('.docx');
+
+    // 3. Read arrayBuffer and convert safely to Buffer
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    // 3. Pipe using a standard Node.js Readable stream
+    // 4. Pipe using Node.js Readable stream with explicit public accessibility
     const uploadResult: any = await new Promise((resolve, reject) => {
+      const uploadOptions: Record<string, any> = {
+        folder: 'menen-engineering',
+        resource_type: isPdfOrDoc ? 'auto' : 'image',
+        type: 'upload',            // Explicit public upload
+        access_mode: 'public',     // Prevents 401 Unauthorized download issues
+        use_filename: true,        // Preserves original name structure
+        unique_filename: true,     // Prevents overwriting duplicate filenames
+      };
+
+      // Apply image compression/formatting only to images, not PDF documents
+      if (!isPdfOrDoc) {
+        uploadOptions.transformation = [{ quality: 'auto', fetch_format: 'auto' }];
+      } else if (file.name.toLowerCase().endsWith('.pdf') || file.type === 'application/pdf') {
+        uploadOptions.format = 'pdf'; // Ensures Cloudinary attaches the .pdf extension
+      }
+
       const uploadStream = cloudinary.uploader.upload_stream(
-        {
-          folder: 'menen-engineering',
-          resource_type: 'image',
-          transformation: [{ quality: 'auto', fetch_format: 'auto' }],
-        },
+        uploadOptions,
         (error, result) => {
           if (error) {
             console.error('Cloudinary Stream Error:', error);
@@ -52,27 +72,28 @@ export async function POST(req: NextRequest) {
         }
       );
 
-      // Create stream and pipe into Cloudinary
       const readableStream = new Readable();
       readableStream.push(buffer);
-      readableStream.push(null); // End of stream
+      readableStream.push(null);
       readableStream.pipe(uploadStream);
     });
 
     console.log('Upload successful! URL:', uploadResult.secure_url);
 
-    // Return both keys so any client frontend works seamlessly
     return NextResponse.json({
       success: true,
       url: uploadResult.secure_url,
       secure_url: uploadResult.secure_url,
       public_id: uploadResult.public_id,
+      format: uploadResult.format,
+      original_filename: file.name,
+      resource_type: uploadResult.resource_type,
     });
   } catch (error: any) {
     console.error('Upload Endpoint Failure:', error);
     return NextResponse.json(
       { 
-        error: error.message || 'Image upload failed',
+        error: error.message || 'File upload failed',
         details: error.http_code || error.name || 'Unknown error'
       },
       { status: 500 }

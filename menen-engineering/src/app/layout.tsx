@@ -1,9 +1,10 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import Link from 'next/link';
-import ThemeSwitcher from '@/components/layout/ThemeSwitcher';
+import Navbar from '@/components/layout/Navbar';
 import SecretAdminTrigger from '@/components/layout/SecretAdminTrigger';
 import { prisma } from '@/lib/prisma';
+import { MapPin, Phone, Mail } from 'lucide-react';
 
 export const metadata: Metadata = {
   title: 'MENEN Engineering PLC | Category One Architectural & Engineering Design Firm',
@@ -15,7 +16,6 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // Fetch primary configuration dynamically with robust fallback
   let config = {
     companyName: 'MENEN Engineering PLC',
     motto: "It's all about commitment!",
@@ -45,6 +45,9 @@ export default async function RootLayout({
     // Graceful fallback to static configuration if database is initializing
   }
 
+  // Exact Google Map URL provided
+  const GOOGLE_MAPS_LOCATION_URL = 'https://maps.app.goo.gl/aZi46d5GYwmFY3BD9';
+
   return (
     <html lang="en" suppressHydrationWarning>
       <body 
@@ -52,49 +55,28 @@ export default async function RootLayout({
         className="flex flex-col min-h-screen"
         suppressHydrationWarning
       >
-        {/* Top Architectural Notice Bar */}
-        <div className="bg-[var(--theme-card)] border-b border-[var(--theme-border)] text-[11px] py-1 px-4 text-center font-mono text-[var(--theme-text-secondary)] flex justify-between items-center max-w-7xl mx-auto w-full">
+        {/* Top Architectural Notice Bar with Click-to-Call */}
+        <div className="bg-[var(--theme-card)] border-b border-[var(--theme-border)] text-[11px] py-1.5 px-4 text-center font-mono text-[var(--theme-text-secondary)] flex justify-between items-center max-w-7xl mx-auto w-full">
           <span className="truncate">
             <strong className="text-[var(--theme-accent)]">{config.companyName}</strong> — Category One Engineering Consultants
           </span>
           <span className="hidden md:inline text-[var(--theme-text-muted)] italic">
             &ldquo;{config.motto}&rdquo;
           </span>
-          <span className="hidden sm:inline text-[var(--theme-accent)] font-semibold">
-            {config.primaryPhone}
-          </span>
+          <a
+            href={`tel:${config.primaryPhone.replace(/\s+/g, '')}`}
+            className="hidden sm:inline-flex items-center gap-1.5 text-[var(--theme-accent)] font-semibold hover:underline"
+            title="Tap to Call"
+          >
+            <Phone className="w-3 h-3" /> {config.primaryPhone}
+          </a>
         </div>
 
-        {/* Global Navigation Header */}
-        <header className="sticky top-0 z-40 backdrop-blur-md bg-[var(--theme-bg)]/90 border-b border-[var(--theme-border)]">
-          <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
-            <Link href="/" className="flex flex-col">
-              <span className="font-extrabold text-lg sm:text-xl tracking-wider text-[var(--theme-text-primary)]">
-                MENEN <span className="text-[var(--theme-accent)] font-light">ENGINEERING</span>
-              </span>
-              <span className="text-[9px] font-mono text-[var(--theme-text-muted)] tracking-widest uppercase">
-                PLC • ARCHITECTS &amp; CONSULTANTS
-              </span>
-            </Link>
-
-            <nav className="hidden md:flex items-center gap-7 text-xs font-semibold uppercase tracking-wider text-[var(--theme-text-secondary)]">
-              <Link href="/projects" className="hover:text-[var(--theme-accent)] transition">Projects</Link>
-              <Link href="/team" className="hover:text-[var(--theme-accent)] transition">Specialists &amp; Team</Link>
-              <Link href="/submit-project" className="hover:text-[var(--theme-accent)] transition">Submit Brief</Link>
-              <Link href="/contact" className="hover:text-[var(--theme-accent)] transition">Contact</Link>
-            </nav>
-
-            <div className="flex items-center gap-3">
-              <ThemeSwitcher />
-              <Link
-                href="/submit-project"
-                className="hidden sm:inline-block px-3.5 py-1.5 rounded text-xs font-bold bg-[var(--theme-accent)] text-black hover:opacity-90 transition font-mono"
-              >
-                Request Proposal
-              </Link>
-            </div>
-          </div>
-        </header>
+        {/* Global Navigation Header with Dual Logo, Jambo Menu & Key-only Admin */}
+        <Navbar 
+          companyName={config.companyName} 
+          primaryPhone={config.primaryPhone} 
+        />
 
         {/* Dynamic Route Content */}
         <main className="flex-1">
@@ -111,9 +93,16 @@ export default async function RootLayout({
               <p className="text-[11px] leading-relaxed text-[var(--theme-text-muted)]">
                 Category One Architectural and Engineering Consultancy Firm established in 2021 by Eng. Habtamu Getu and Arch. Samiel Musolino.
               </p>
-              <p className="text-[10px] font-mono text-[var(--theme-accent)]">
-                Addis Ababa • Ethiopia
-              </p>
+              
+              {/* Exact Google Map Direct Link */}
+              <a
+                href={GOOGLE_MAPS_LOCATION_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-[11px] font-mono text-[var(--theme-accent)] hover:underline"
+              >
+                <MapPin className="w-3.5 h-3.5 shrink-0" /> Open Office in Google Maps &rarr;
+              </a>
             </div>
 
             <div>
@@ -142,19 +131,53 @@ export default async function RootLayout({
               </ul>
             </div>
 
+            {/* Head Office Details with Click-to-Map, Click-to-Call, Click-to-Email */}
             <div>
               <h5 className="font-semibold text-xs text-[var(--theme-text-primary)] uppercase tracking-wider mb-3">
                 Head Office
               </h5>
-              <p className="text-[11px] text-[var(--theme-text-muted)] leading-relaxed">
-                {config.officeAddress}
-              </p>
-              <p className="mt-2 text-[11px] text-[var(--theme-accent)] font-mono">
-                {config.primaryPhone} / {config.secondaryPhone}
-              </p>
-              <p className="text-[11px] text-[var(--theme-text-muted)] font-mono">
-                {config.primaryEmail}
-              </p>
+              <a
+                href={GOOGLE_MAPS_LOCATION_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block text-[11px] text-[var(--theme-text-muted)] hover:text-[var(--theme-accent)] transition leading-relaxed group"
+                title="Click to open Google Maps"
+              >
+                <span className="group-hover:underline flex items-start gap-1.5">
+                  <MapPin className="w-3.5 h-3.5 text-[var(--theme-accent)] shrink-0 mt-0.5" />
+                  {config.officeAddress}
+                </span>
+              </a>
+
+              <div className="mt-3 space-y-1 font-mono text-[11px]">
+                <p>
+                  <a
+                    href={`tel:${config.primaryPhone.replace(/\s+/g, '')}`}
+                    className="text-[var(--theme-accent)] hover:underline flex items-center gap-1.5"
+                    title="Click to dial"
+                  >
+                    <Phone className="w-3 h-3" /> {config.primaryPhone}
+                  </a>
+                </p>
+                <p>
+                  <a
+                    href={`tel:${config.secondaryPhone.replace(/\s+/g, '')}`}
+                    className="text-[var(--theme-text-muted)] hover:text-[var(--theme-accent)] flex items-center gap-1.5"
+                    title="Click to dial secondary line"
+                  >
+                    <Phone className="w-3 h-3" /> {config.secondaryPhone}
+                  </a>
+                </p>
+                <p className="pt-1">
+                  <a
+                    href={`mailto:${config.primaryEmail}`}
+                    className="text-[var(--theme-text-muted)] hover:text-[var(--theme-accent)] flex items-center gap-1.5"
+                    title="Click to send email"
+                  >
+                    <Mail className="w-3 h-3" /> {config.primaryEmail}
+                  </a>
+                </p>
+              </div>
             </div>
           </div>
 
@@ -164,8 +187,8 @@ export default async function RootLayout({
           </div>
         </footer>
 
-        {/* Discreet Secret Key Trigger for Admin Portal */}
-        <SecretAdminTrigger />
+        {/* Discreet Trigger for Emergency Recovery */}
+       {/* <SecretAdminTrigger /> */}
       </body>
     </html>
   );

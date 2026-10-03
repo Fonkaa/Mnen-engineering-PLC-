@@ -12,9 +12,9 @@ import {
   GraduationCap, 
   Briefcase,
   FileText,
-  Building,
-  User,
-  ExternalLink
+  Upload,
+  X,
+  FileCheck2
 } from 'lucide-react';
 
 export default function SubmitProjectPage() {
@@ -22,11 +22,54 @@ export default function SubmitProjectPage() {
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  // PDF Document Upload State
+  const [pdfUrl, setPdfUrl] = useState<string>('');
+  const [pdfName, setPdfName] = useState<string>('');
+  const [uploadingPdf, setUploadingPdf] = useState(false);
+
+  async function handleFileUpload(file: File) {
+    if (!file) return;
+
+    if (file.size > 25 * 1024 * 1024) {
+      alert('Document exceeds 25MB limit. Please upload a compressed PDF or file.');
+      return;
+    }
+
+    setUploadingPdf(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || 'Failed to upload document.');
+        return;
+      }
+
+      const uploadedUrl = data.url || data.secure_url;
+      setPdfUrl(uploadedUrl);
+      setPdfName(file.name);
+    } catch (err: any) {
+      alert('Error uploading document: ' + err.message);
+    } finally {
+      setUploadingPdf(false);
+    }
+  }
+
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (uploadingPdf) {
+      alert('Please wait until your document finishes uploading.');
+      return;
+    }
+
     setLoading(true);
     const form = new FormData(e.currentTarget);
-
     const isInternship = submissionType === 'INTERNSHIP';
 
     const payload = {
@@ -39,10 +82,12 @@ export default function SubmitProjectPage() {
       location: form.get('location') || null,
       plotSize: form.get('plotSize') || null,
       scope: isInternship 
-        ? `[STUDENT INTERNSHIP APPLICATION]\nUniversity: ${form.get('university')}\nDepartment: ${form.get('academicDepartment')}\nYear of Study: ${form.get('yearOfStudy')}\nCGPA: ${form.get('cgpa')}\nPortfolio/CV: ${form.get('portfolioUrl')}\n\nStatement of Purpose:\n${form.get('scope')}`
+        ? `[STUDENT INTERNSHIP APPLICATION]\nUniversity: ${form.get('university')}\nDepartment: ${form.get('academicDepartment')}\nYear of Study: ${form.get('yearOfStudy')}\nCGPA: ${form.get('cgpa')}\nPortfolio/CV Link: ${form.get('portfolioUrl') || 'N/A'}\nAttached Document: ${pdfUrl ? `${pdfName} (${pdfUrl})` : 'None'}\n\nStatement of Purpose:\n${form.get('scope')}`
         : form.get('scope'),
       referenceVideo: form.get('referenceVideo') || null,
       referenceAudio: form.get('referenceAudio') || null,
+      documentPdfUrl: pdfUrl || null,
+      documentPdfName: pdfName || null,
     };
 
     try {
@@ -76,8 +121,8 @@ export default function SubmitProjectPage() {
         </h2>
         <p className="text-sm text-[var(--theme-text-secondary)] leading-relaxed">
           {submissionType === 'INTERNSHIP'
-            ? 'Your internship application profile has been registered and delivered to the MENEN Engineering PLC review panel. You will receive an email decision regarding your interview and placement status.'
-            : 'Thank you for contacting MENEN Engineering PLC. The board and lead engineers have received your project scope, and an evaluation notice has been sent to our corporate administration.'}
+            ? 'Your internship application profile and attached documents have been received by the review panel. You will receive an official decision letter via email.'
+            : 'Thank you for submitting your architectural & engineering brief. Eng. Habtamu Getu and our lead engineers have received your dossier, PDF specifications, and details.'}
         </p>
         <Link
           href="/"
@@ -112,7 +157,11 @@ export default function SubmitProjectPage() {
       <div className="flex rounded-xl bg-[var(--theme-surface)] p-1.5 border border-[var(--theme-border)] gap-2">
         <button
           type="button"
-          onClick={() => setSubmissionType('PROJECT')}
+          onClick={() => {
+            setSubmissionType('PROJECT');
+            setPdfUrl('');
+            setPdfName('');
+          }}
           className={`flex-1 py-2.5 px-4 rounded-lg text-xs font-mono font-semibold flex items-center justify-center gap-2 transition cursor-pointer ${
             submissionType === 'PROJECT'
               ? 'bg-[var(--theme-accent)] text-black shadow-md'
@@ -123,7 +172,11 @@ export default function SubmitProjectPage() {
         </button>
         <button
           type="button"
-          onClick={() => setSubmissionType('INTERNSHIP')}
+          onClick={() => {
+            setSubmissionType('INTERNSHIP');
+            setPdfUrl('');
+            setPdfName('');
+          }}
           className={`flex-1 py-2.5 px-4 rounded-lg text-xs font-mono font-semibold flex items-center justify-center gap-2 transition cursor-pointer ${
             submissionType === 'INTERNSHIP'
               ? 'bg-[var(--theme-accent)] text-black shadow-md'
@@ -143,14 +196,12 @@ export default function SubmitProjectPage() {
             <label className="block text-xs font-mono uppercase text-[var(--theme-text-secondary)] mb-1">
               Full Name *
             </label>
-            <div className="relative">
-              <input
-                required
-                name="fullName"
-                placeholder={submissionType === 'INTERNSHIP' ? 'e.g. Sara Tesfaye' : 'e.g. Ato Bekele / Developer'}
-                className="w-full bg-[var(--theme-surface)] border border-[var(--theme-border)] rounded-lg px-3.5 py-2 text-xs text-[var(--theme-text-primary)] focus:outline-none focus:border-[var(--theme-accent)]"
-              />
-            </div>
+            <input
+              required
+              name="fullName"
+              placeholder={submissionType === 'INTERNSHIP' ? 'e.g. Sara Tesfaye' : 'e.g. Ato Bekele / Developer'}
+              className="w-full bg-[var(--theme-surface)] border border-[var(--theme-border)] rounded-lg px-3.5 py-2 text-xs text-[var(--theme-text-primary)] focus:outline-none focus:border-[var(--theme-accent)]"
+            />
           </div>
           <div>
             <label className="block text-xs font-mono uppercase text-[var(--theme-text-secondary)] mb-1">
@@ -243,9 +294,69 @@ export default function SubmitProjectPage() {
                 required
                 name="scope"
                 rows={4}
-                placeholder="Describe number of basements/floors (e.g., 2B+G+M+15), municipal status, structural systems needed..."
+                placeholder="Describe number of basements/floors (e.g., 2B+G+M+15), municipal permit status, structural systems needed..."
                 className="w-full bg-[var(--theme-surface)] border border-[var(--theme-border)] rounded-lg px-3.5 py-2 text-xs text-[var(--theme-text-primary)] focus:outline-none focus:border-[var(--theme-accent)]"
               />
+            </div>
+
+            {/* DEDICATED PDF & SPECIFICATION UPLOADER */}
+            <div className="p-4 rounded-xl bg-[var(--theme-surface)] border border-[var(--theme-border)] space-y-3">
+              <label className="block text-xs font-mono uppercase text-[var(--theme-text-primary)] font-bold flex items-center justify-between">
+                <span className="flex items-center gap-1.5">
+                  <FileText className="w-4 h-4 text-[var(--theme-accent)]" /> 
+                  Upload Project Brief / Technical Specifications (PDF / DOC)
+                </span>
+                <span className="text-[10px] text-[var(--theme-text-muted)] font-normal">Max 25MB</span>
+              </label>
+
+              {!pdfUrl ? (
+                <label className="flex flex-col items-center justify-center border-2 border-dashed border-[var(--theme-border)] hover:border-[var(--theme-accent)] rounded-xl p-5 cursor-pointer bg-[var(--theme-card)]/50 transition group text-center">
+                  {uploadingPdf ? (
+                    <div className="flex flex-col items-center gap-2 text-xs font-mono text-[var(--theme-accent)]">
+                      <Loader2 className="w-6 h-6 animate-spin" />
+                      <span>Transmitting document to secure cloud...</span>
+                    </div>
+                  ) : (
+                    <>
+                      <Upload className="w-6 h-6 text-[var(--theme-text-muted)] group-hover:text-[var(--theme-accent)] transition mb-1" />
+                      <span className="text-xs font-medium text-[var(--theme-text-primary)]">
+                        Click or tap to choose PDF drawing or brief
+                      </span>
+                      <span className="text-[10px] text-[var(--theme-text-muted)] font-mono mt-0.5">
+                        Accepts PDF, DWG, DOCX, ZIP files
+                      </span>
+                    </>
+                  )}
+                  <input
+                    type="file"
+                    accept=".pdf,.doc,.docx,.dwg,.zip,application/pdf"
+                    disabled={uploadingPdf}
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleFileUpload(file);
+                    }}
+                  />
+                </label>
+              ) : (
+                <div className="flex items-center justify-between p-3 rounded-lg bg-[var(--theme-accent)]/10 border border-[var(--theme-accent)]/40">
+                  <div className="flex items-center gap-2 text-xs font-mono text-[var(--theme-accent)] truncate">
+                    <FileCheck2 className="w-4 h-4 shrink-0" />
+                    <span className="font-bold truncate">{pdfName}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPdfUrl('');
+                      setPdfName('');
+                    }}
+                    className="p-1 rounded hover:bg-rose-500/20 text-rose-400 transition"
+                    title="Remove attached file"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-[var(--theme-border)]">
@@ -322,14 +433,73 @@ export default function SubmitProjectPage() {
               </div>
             </div>
 
+            {/* DEDICATED RESUME / CV PDF UPLOADER */}
+            <div className="p-4 rounded-xl bg-[var(--theme-surface)] border border-[var(--theme-border)] space-y-3">
+              <label className="block text-xs font-mono uppercase text-[var(--theme-text-primary)] font-bold flex items-center justify-between">
+                <span className="flex items-center gap-1.5">
+                  <FileText className="w-4 h-4 text-[var(--theme-accent)]" /> 
+                  Upload Resume / CV / Academic Transcript (PDF)
+                </span>
+                <span className="text-[10px] text-[var(--theme-text-muted)] font-normal">Max 25MB</span>
+              </label>
+
+              {!pdfUrl ? (
+                <label className="flex flex-col items-center justify-center border-2 border-dashed border-[var(--theme-border)] hover:border-[var(--theme-accent)] rounded-xl p-5 cursor-pointer bg-[var(--theme-card)]/50 transition group text-center">
+                  {uploadingPdf ? (
+                    <div className="flex flex-col items-center gap-2 text-xs font-mono text-[var(--theme-accent)]">
+                      <Loader2 className="w-6 h-6 animate-spin" />
+                      <span>Uploading resume to cloud...</span>
+                    </div>
+                  ) : (
+                    <>
+                      <Upload className="w-6 h-6 text-[var(--theme-text-muted)] group-hover:text-[var(--theme-accent)] transition mb-1" />
+                      <span className="text-xs font-medium text-[var(--theme-text-primary)]">
+                        Click or tap to upload CV / Portfolio PDF
+                      </span>
+                      <span className="text-[10px] text-[var(--theme-text-muted)] font-mono mt-0.5">
+                        Accepts PDF documents
+                      </span>
+                    </>
+                  )}
+                  <input
+                    type="file"
+                    accept=".pdf,application/pdf"
+                    disabled={uploadingPdf}
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleFileUpload(file);
+                    }}
+                  />
+                </label>
+              ) : (
+                <div className="flex items-center justify-between p-3 rounded-lg bg-[var(--theme-accent)]/10 border border-[var(--theme-accent)]/40">
+                  <div className="flex items-center gap-2 text-xs font-mono text-[var(--theme-accent)] truncate">
+                    <FileCheck2 className="w-4 h-4 shrink-0" />
+                    <span className="font-bold truncate">{pdfName}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPdfUrl('');
+                      setPdfName('');
+                    }}
+                    className="p-1 rounded hover:bg-rose-500/20 text-rose-400 transition"
+                    title="Remove attached PDF"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
+            </div>
+
             <div>
-              <label className="block text-xs font-mono uppercase text-[var(--theme-text-secondary)] mb-1 flex items-center justify-between">
-                <span>Portfolio / Resume / Transcript Cloud Link (Google Drive / GitHub / Behance) *</span>
+              <label className="block text-xs font-mono uppercase text-[var(--theme-text-secondary)] mb-1">
+                Portfolio / GitHub / Behance Link (Optional)
               </label>
               <input
-                required
                 name="portfolioUrl"
-                placeholder="https://drive.google.com/..."
+                placeholder="https://drive.google.com/... or https://behance.net/..."
                 className="w-full bg-[var(--theme-surface)] border border-[var(--theme-border)] rounded-lg px-3.5 py-2 text-xs text-[var(--theme-text-primary)] focus:outline-none focus:border-[var(--theme-accent)] font-mono"
               />
             </div>
@@ -352,8 +522,8 @@ export default function SubmitProjectPage() {
         {/* Submit Action */}
         <button
           type="submit"
-          disabled={loading}
-          className="w-full py-3.5 rounded-lg bg-[var(--theme-accent)] text-black font-bold font-mono text-xs uppercase tracking-wider hover:opacity-90 transition shadow-lg flex items-center justify-center gap-2 cursor-pointer"
+          disabled={loading || uploadingPdf}
+          className="w-full py-3.5 rounded-lg bg-[var(--theme-accent)] text-black font-bold font-mono text-xs uppercase tracking-wider hover:opacity-90 transition shadow-lg flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
         >
           {loading ? (
             <>
@@ -364,7 +534,7 @@ export default function SubmitProjectPage() {
               <Send className="w-4 h-4" /> 
               {submissionType === 'INTERNSHIP' 
                 ? 'Transmit Internship Profile to MENEN Board' 
-                : 'Transmit Project Dossier to Menen Board'}
+                : 'Transmit Project Dossier & PDF to MENEN Board'}
             </>
           )}
         </button>

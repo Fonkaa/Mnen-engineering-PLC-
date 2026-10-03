@@ -2,6 +2,7 @@ import React from 'react';
 import Link from 'next/link';
 import { prisma } from '@/lib/prisma';
 import BlueprintPlaceholder from '@/components/projects/BlueprintPlaceholder';
+import FloatingCeoDossier from '@/components/team/FloatingCeoDossier';
 import { 
   Building2, 
   Award, 
@@ -11,10 +12,11 @@ import {
   FileCheck, 
   Eye, 
   CheckCircle2,
-  Linkedin
+  Linkedin,
+  Users
 } from 'lucide-react';
 
-// Force live data without stale cache
+// Force dynamic fetch to ensure real-time Cloudinary and database updates
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
@@ -23,12 +25,13 @@ export default async function HomePage() {
   let featuredProjects: any[] = [];
   let leadershipTeam: any[] = [];
 
-try {
+  try {
     const contents = await prisma.dynamicContent.findMany();
 
+    // Query 9 projects at once for a complete 3x3 portfolio showcase
     const projects = await prisma.project.findMany({
       orderBy: [{ isFeatured: 'desc' }, { order: 'asc' }],
-      take: 6,
+      take: 9,
     });
 
     const team = await prisma.teamMember.findMany({
@@ -46,6 +49,7 @@ try {
   } catch (error) {
     console.warn('Database query fallback triggered on landing page:', error);
   }
+
   const txt = (key: string, fallback: string) => dynamicContentMap[key] || fallback;
 
   const coreServices = [
@@ -223,18 +227,18 @@ try {
         </div>
       </section>
 
-      {/* 4. FEATURED LANDMARK PROJECTS */}
+      {/* 4. FEATURED LANDMARK PROJECTS (9 PROJECTS GRID) */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-10 gap-4">
           <div>
             <span className="text-xs font-mono uppercase tracking-widest text-[var(--theme-accent)] font-semibold">
-              Masterworks
+              Masterworks Portfolio
             </span>
             <h2 className="text-3xl sm:text-4xl font-extrabold text-[var(--theme-text-primary)] mt-1">
-              Selected Landmark Projects
+              Selected Landmark Projects ({featuredProjects.length})
             </h2>
             <p className="text-xs text-[var(--theme-text-secondary)] mt-1">
-              Schematic prize winners, high-rises, hotels, and national infrastructure.
+              Schematic prize winners, high-rises, hotels, and national infrastructure across Ethiopia.
             </p>
           </div>
 
@@ -248,63 +252,72 @@ try {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {featuredProjects.length > 0 ? (
-            featuredProjects.map((p) => (
-              <div
-                key={p.id}
-                className="bg-[var(--theme-card)] border border-[var(--theme-border)] rounded-2xl overflow-hidden hover:border-[var(--theme-accent)] transition flex flex-col justify-between group shadow-sm"
-              >
-                <div className="relative aspect-[16/10] bg-[var(--theme-surface)] overflow-hidden">
-                  {p.featuredImage && !p.featuredImage.includes('/images/projects/placeholders/') ? (
-                    <img
-                      src={p.featuredImage}
-                      alt={p.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
-                    />
-                  ) : (
-                    <BlueprintPlaceholder title={p.title} category={p.category} />
-                  )}
+            featuredProjects.map((p) => {
+              // Valid Cloudinary CDN check
+              const validImage = p.featuredImage && 
+                !p.featuredImage.startsWith('/uploads/') && 
+                !p.featuredImage.includes('/images/projects/placeholders/') 
+                ? p.featuredImage 
+                : null;
 
-                  <div className="absolute top-3 right-3 bg-[var(--theme-surface)]/90 backdrop-blur-md px-2 py-1 rounded text-[10px] font-mono text-[var(--theme-accent)] border border-[var(--theme-border)] font-bold">
-                    {p.category}
-                  </div>
-                </div>
-
-                <div className="p-6 flex-1 flex flex-col justify-between">
-                  <div>
-                    {p.awards && (
-                      <div className="flex items-center gap-1.5 text-[11px] text-[var(--theme-accent)] font-semibold mb-2 font-mono">
-                        <Award className="w-3.5 h-3.5 shrink-0" />
-                        <span className="truncate">{p.awards}</span>
-                      </div>
+              return (
+                <div
+                  key={p.id}
+                  className="bg-[var(--theme-card)] border border-[var(--theme-border)] rounded-2xl overflow-hidden hover:border-[var(--theme-accent)] transition flex flex-col justify-between group shadow-sm"
+                >
+                  <div className="relative aspect-[16/10] bg-[var(--theme-surface)] overflow-hidden">
+                    {validImage ? (
+                      <img
+                        src={validImage}
+                        alt={p.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
+                      />
+                    ) : (
+                      <BlueprintPlaceholder title={p.title} category={p.category} />
                     )}
 
-                    <h3 className="text-lg font-bold text-[var(--theme-text-primary)] group-hover:text-[var(--theme-accent)] transition">
-                      {p.title}
-                    </h3>
-
-                    <p className="text-xs text-[var(--theme-text-secondary)] mt-1.5">
-                      Client: <span className="font-semibold text-[var(--theme-text-primary)]">{p.client}</span>
-                    </p>
-
-                    <p className="text-xs text-[var(--theme-text-muted)] mt-2.5 line-clamp-2 leading-relaxed">
-                      {p.scopeOfWork}
-                    </p>
+                    <div className="absolute top-3 right-3 bg-[var(--theme-surface)]/90 backdrop-blur-md px-2 py-1 rounded text-[10px] font-mono text-[var(--theme-accent)] border border-[var(--theme-border)] font-bold">
+                      {p.category}
+                    </div>
                   </div>
 
-                  <div className="mt-5 pt-4 border-t border-[var(--theme-border)] flex items-center justify-between text-xs font-mono">
-                    <span className="text-[var(--theme-text-muted)] flex items-center gap-1">
-                      <MapPin className="w-3.5 h-3.5 text-[var(--theme-accent)]" /> {p.location}
-                    </span>
-                    <Link
-                      href={`/projects/${p.slug}`}
-                      className="text-[var(--theme-accent)] font-semibold hover:underline"
-                    >
-                      Dossier &rarr;
-                    </Link>
+                  <div className="p-6 flex-1 flex flex-col justify-between">
+                    <div>
+                      {p.awards && (
+                        <div className="flex items-center gap-1.5 text-[11px] text-[var(--theme-accent)] font-semibold mb-2 font-mono">
+                          <Award className="w-3.5 h-3.5 shrink-0" />
+                          <span className="truncate">{p.awards}</span>
+                        </div>
+                      )}
+
+                      <h3 className="text-lg font-bold text-[var(--theme-text-primary)] group-hover:text-[var(--theme-accent)] transition">
+                        {p.title}
+                      </h3>
+
+                      <p className="text-xs text-[var(--theme-text-secondary)] mt-1.5">
+                        Client: <span className="font-semibold text-[var(--theme-text-primary)]">{p.client}</span>
+                      </p>
+
+                      <p className="text-xs text-[var(--theme-text-muted)] mt-2.5 line-clamp-2 leading-relaxed">
+                        {p.scopeOfWork}
+                      </p>
+                    </div>
+
+                    <div className="mt-5 pt-4 border-t border-[var(--theme-border)] flex items-center justify-between text-xs font-mono">
+                      <span className="text-[var(--theme-text-muted)] flex items-center gap-1">
+                        <MapPin className="w-3.5 h-3.5 text-[var(--theme-accent)]" /> {p.location}
+                      </span>
+                      <Link
+                        href={`/projects/${p.slug}`}
+                        className="text-[var(--theme-accent)] font-semibold hover:underline"
+                      >
+                        Dossier &rarr;
+                      </Link>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           ) : (
             <div className="col-span-3 text-center py-12 text-sm text-[var(--theme-text-muted)] border border-dashed border-[var(--theme-border)] rounded-2xl">
               Projects catalog is loading or syncing with database.
@@ -328,65 +341,68 @@ try {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {leadershipTeam.map((leader) => (
-            <div
-              key={leader.id}
-              className="bg-[var(--theme-card)] border border-[var(--theme-border)] p-6 rounded-2xl flex flex-col justify-between hover:border-[var(--theme-accent)]/60 transition group shadow-sm"
-            >
-              <div>
-                <div className="w-full h-56 rounded-xl bg-[var(--theme-surface)] border border-[var(--theme-border)] mb-5 overflow-hidden flex items-center justify-center relative">
-                  {leader.avatarUrl ? (
-                    <img src={leader.avatarUrl} alt={leader.name} className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="text-center p-4">
-                      <div className="w-12 h-12 rounded-full border border-[var(--theme-accent)]/40 bg-[var(--theme-card)] flex items-center justify-center mx-auto mb-2 text-[var(--theme-accent)]">
-                        <Building2 className="w-6 h-6 stroke-1" />
+          {leadershipTeam.map((leader) => {
+            const validAvatar = leader.avatarUrl && !leader.avatarUrl.startsWith('/uploads/') ? leader.avatarUrl : null;
+            return (
+              <div
+                key={leader.id}
+                className="bg-[var(--theme-card)] border border-[var(--theme-border)] p-6 rounded-2xl flex flex-col justify-between hover:border-[var(--theme-accent)]/60 transition group shadow-sm"
+              >
+                <div>
+                  <div className="w-full h-56 rounded-xl bg-[var(--theme-surface)] border border-[var(--theme-border)] mb-5 overflow-hidden flex items-center justify-center relative">
+                    {validAvatar ? (
+                      <img src={validAvatar} alt={leader.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="text-center p-4">
+                        <div className="w-12 h-12 rounded-full border border-[var(--theme-accent)]/40 bg-[var(--theme-card)] flex items-center justify-center mx-auto mb-2 text-[var(--theme-accent)]">
+                          <Users className="w-6 h-6 stroke-1" />
+                        </div>
+                        <span className="text-[10px] font-mono uppercase tracking-widest text-[var(--theme-text-muted)]">
+                          Profile Verified
+                        </span>
                       </div>
-                      <span className="text-[10px] font-mono uppercase tracking-widest text-[var(--theme-text-muted)]">
-                        Profile Verified
-                      </span>
-                    </div>
+                    )}
+                  </div>
+
+                  <h3 className="text-lg font-bold text-[var(--theme-text-primary)]">
+                    {leader.name}
+                  </h3>
+                  <p className="text-xs font-mono text-[var(--theme-accent)] mt-0.5">
+                    {leader.roleTitle}
+                  </p>
+
+                  <div className="mt-3 p-2 rounded bg-[var(--theme-surface)] border border-[var(--theme-border)] text-[11px] text-[var(--theme-text-muted)] font-mono">
+                    {leader.credentials}
+                  </div>
+
+                  <p className="mt-4 text-xs text-[var(--theme-text-secondary)] line-clamp-4 leading-relaxed">
+                    {leader.bio}
+                  </p>
+                </div>
+
+                <div className="mt-6 pt-4 border-t border-[var(--theme-border)] flex items-center justify-between">
+                  <Link
+                    href="/team"
+                    className="text-xs text-[var(--theme-text-primary)] font-semibold hover:text-[var(--theme-accent)] transition"
+                  >
+                    Full Bio & Portfolio &rarr;
+                  </Link>
+
+                  {leader.linkedinUrl && (
+                    <a
+                      href={leader.linkedinUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-1.5 rounded bg-[var(--theme-surface)] text-[var(--theme-text-muted)] hover:text-[#0077b5] border border-[var(--theme-border)] transition"
+                      title="Verified LinkedIn"
+                    >
+                      <Linkedin className="w-4 h-4" />
+                    </a>
                   )}
                 </div>
-
-                <h3 className="text-lg font-bold text-[var(--theme-text-primary)]">
-                  {leader.name}
-                </h3>
-                <p className="text-xs font-mono text-[var(--theme-accent)] mt-0.5">
-                  {leader.roleTitle}
-                </p>
-
-                <div className="mt-3 p-2 rounded bg-[var(--theme-surface)] border border-[var(--theme-border)] text-[11px] text-[var(--theme-text-muted)] font-mono">
-                  {leader.credentials}
-                </div>
-
-                <p className="mt-4 text-xs text-[var(--theme-text-secondary)] line-clamp-4 leading-relaxed">
-                  {leader.bio}
-                </p>
               </div>
-
-              <div className="mt-6 pt-4 border-t border-[var(--theme-border)] flex items-center justify-between">
-                <Link
-                  href="/team"
-                  className="text-xs text-[var(--theme-text-primary)] font-semibold hover:text-[var(--theme-accent)] transition"
-                >
-                  Full Bio & Portfolio &rarr;
-                </Link>
-
-                {leader.linkedinUrl && (
-                  <a
-                    href={leader.linkedinUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="p-1.5 rounded bg-[var(--theme-surface)] text-[var(--theme-text-muted)] hover:text-[#0077b5] border border-[var(--theme-border)] transition"
-                    title="Verified LinkedIn"
-                  >
-                    <Linkedin className="w-4 h-4" />
-                  </a>
-                )}
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </section>
 
@@ -419,6 +435,8 @@ try {
               Contact Office
             </Link>
           </div>
+          {/* Eng. Habtamu Getu Executive Dossier (Bottom Right) */}
+      <FloatingCeoDossier />
         </div>
       </section>
 

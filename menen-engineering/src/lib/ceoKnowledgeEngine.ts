@@ -189,14 +189,14 @@ export function queryCeoKnowledge(rawQuery: string): string {
   }
 
   // Contextual fallback with helpful navigation hints
-  return `I am programmed specifically with verified records regarding **Eng. Habtamu Getu Mihret** (CEO of MENEN Engineering PLC).
+  return `I am programmed specifically with verified records regarding Eng. Habtamu Getu Mihret (CEO of MENEN Engineering PLC).
 
 I can answer questions regarding:
-- 🎓 **Education:** His MSc from Chalmers University (Sweden), Seismic safety in Messina (Italy), and AAiT.
-- 🌉 **Rural Infrastructure:** His 6-day Trail Bridge training with HELVETAS and regional road bureaus.
-- 🏢 **Structural Skills:** Software tools (Tekla, Abaqus, ETABS, SAP2000, FEA) and high-rise engineering.
-- 🏛️ **Heritage Projects:** Work with Fasil Giorghis on the National Palace and historic landmarks.
-- 📞 **Contact:** How to book a technical consultation or reach his LinkedIn/Facebook.
+- 🎓 Education: His MSc from Chalmers University (Sweden), Seismic safety in Messina (Italy), and AAiT.
+- 🌉 Rural Infrastructure: His 6-day Trail Bridge training with HELVETAS and regional road bureaus.
+- 🏢 Structural Skills: Software tools (Tekla, Abaqus, ETABS, SAP2000, FEA) and high-rise engineering.
+- 🏛️ Heritage Projects: Work with Fasil Giorghis on the National Palace and historic landmarks.
+- 📞 Contact: How to book a technical consultation or reach his LinkedIn/Facebook.
 
 Feel free to pick one of the quick chips above or ask any question on these topics!`;
 }

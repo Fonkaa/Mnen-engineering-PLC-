@@ -17,15 +17,16 @@ import {
   X, 
   ExternalLink, 
   LogOut, 
-  CheckCircle2,
-  Video,
-  Volume2,
-  Image as ImageIcon,
-  Upload,
-  Loader2,
-  Mail,
-  GraduationCap,
-  Briefcase
+  CheckCircle2, 
+  Video, 
+  Volume2, 
+  Image as ImageIcon, 
+  Upload, 
+  Loader2, 
+  Mail, 
+  GraduationCap, 
+  Briefcase, 
+  FileCheck2 
 } from 'lucide-react';
 
 export default function MasterAdminDashboard() {
@@ -135,7 +136,6 @@ export default function MasterAdminDashboard() {
         return null;
       }
 
-      // Read Cloudinary permanent CDN URL
       const cdnUrl = data.url || data.secure_url;
       if (!cdnUrl) {
         alert('Server succeeded but did not return a valid CDN link.');
@@ -161,7 +161,6 @@ export default function MasterAdminDashboard() {
     const form = new FormData(e.currentTarget);
     const isEditing = Boolean(editingProject?.id);
 
-    // Filter out old dead local /uploads/ paths
     let finalFeaturedImage = projectImageUrl.trim() || (form.get('featuredImage') as string)?.trim() || null;
     if (finalFeaturedImage && finalFeaturedImage.startsWith('/uploads/')) {
       finalFeaturedImage = null;
@@ -236,7 +235,6 @@ export default function MasterAdminDashboard() {
     const form = new FormData(e.currentTarget);
     const isEditing = Boolean(editingMember?.id);
 
-    // Filter out old dead local /uploads/ paths
     let finalAvatarUrl = memberImageUrl.trim() || (form.get('avatarUrl') as string)?.trim() || null;
     if (finalAvatarUrl && finalAvatarUrl.startsWith('/uploads/')) {
       finalAvatarUrl = null;
@@ -438,7 +436,7 @@ export default function MasterAdminDashboard() {
             Master Dynamic Administration Engine
           </h1>
           <p className="text-xs text-[var(--theme-text-muted)] mt-1 font-mono">
-            Direct Database Synced &bull; Cloudinary Media & Email Dispatch Active
+            Direct Database Synced &bull; Cloudinary Media &amp; Email Dispatch Active
           </p>
         </div>
 
@@ -605,19 +603,21 @@ export default function MasterAdminDashboard() {
 
           {/* PROJECT CREATE / EDIT MODAL */}
           {isNewProjectModal && (
-            <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-              <div className="w-full max-w-2xl bg-[var(--theme-card)] border border-[var(--theme-border)] rounded-2xl p-6 sm:p-8 space-y-6 shadow-2xl my-8">
-                <div className="flex justify-between items-center border-b border-[var(--theme-border)] pb-4">
-                  <h3 className="text-lg font-bold text-[var(--theme-text-primary)]">
+            <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+              <div className="w-full max-w-2xl bg-[var(--theme-card)] border border-[var(--theme-border)] rounded-2xl p-5 sm:p-8 space-y-6 shadow-2xl my-auto max-h-[92vh] overflow-y-auto">
+                <div className="flex justify-between items-center border-b border-[var(--theme-border)] pb-4 sticky top-0 bg-[var(--theme-card)] z-10">
+                  <h3 className="text-base sm:text-lg font-bold text-[var(--theme-text-primary)]">
                     {editingProject ? 'Edit Project Details' : 'Add New Engineering Project'}
                   </h3>
                   <button
+                    type="button"
                     onClick={() => {
                       setEditingProject(null);
                       setIsNewProjectModal(false);
                       setProjectImageUrl('');
                     }}
-                    className="text-[var(--theme-text-muted)] hover:text-[var(--theme-text-primary)]"
+                    className="p-2 rounded-xl bg-[var(--theme-surface)] border border-[var(--theme-border)] text-[var(--theme-text-muted)] hover:text-white hover:border-[var(--theme-accent)] transition cursor-pointer"
+                    aria-label="Close Project Modal"
                   >
                     <X className="w-5 h-5" />
                   </button>
@@ -686,7 +686,7 @@ export default function MasterAdminDashboard() {
                         <option value="COMPLETED">Completed</option>
                         <option value="DESIGN_PHASE">Design Phase</option>
                         <option value="LAND_ACQUISITION_PROCESS">Land Acquisition</option>
-                        <option value="BOQ_AND_TENDER">BoQ & Tender</option>
+                        <option value="BOQ_AND_TENDER">BoQ &amp; Tender</option>
                         <option value="PROPOSAL">Proposal</option>
                       </select>
                     </div>
@@ -717,7 +717,7 @@ export default function MasterAdminDashboard() {
                     />
                   </div>
 
-                  {/* Device Direct File Upload (Phone & Computer) */}
+                  {/* Device Direct File Upload */}
                   <div className="p-4 rounded-xl bg-[var(--theme-surface)] border border-[var(--theme-border)] space-y-3">
                     <label className="block text-[11px] font-mono uppercase text-[var(--theme-text-primary)] font-bold flex items-center gap-1.5">
                       <ImageIcon className="w-4 h-4 text-[var(--theme-accent)]" /> Project Image (Cloudinary CDN Upload)
@@ -822,12 +822,26 @@ export default function MasterAdminDashboard() {
                     </label>
                   </div>
 
-                  <button
-                    type="submit"
-                    className="w-full py-3 rounded-lg bg-[var(--theme-accent)] text-black font-bold font-mono text-xs uppercase tracking-wider hover:opacity-90 transition mt-4 cursor-pointer"
-                  >
-                    Save Project to Database
-                  </button>
+                  {/* Dual Action Buttons (Save + Mobile Exit) */}
+                  <div className="pt-3 flex flex-col sm:flex-row gap-2">
+                    <button
+                      type="submit"
+                      className="flex-1 py-3 rounded-lg bg-[var(--theme-accent)] text-black font-bold font-mono text-xs uppercase tracking-wider hover:opacity-90 transition cursor-pointer"
+                    >
+                      Save Project to Database
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingProject(null);
+                        setIsNewProjectModal(false);
+                        setProjectImageUrl('');
+                      }}
+                      className="py-3 px-5 rounded-lg bg-[var(--theme-surface)] text-[var(--theme-text-secondary)] hover:text-white border border-[var(--theme-border)] font-mono text-xs uppercase tracking-wider transition cursor-pointer text-center"
+                    >
+                      Cancel &amp; Discard
+                    </button>
+                  </div>
                 </form>
               </div>
             </div>
@@ -843,7 +857,7 @@ export default function MasterAdminDashboard() {
           <div className="flex justify-between items-center bg-[var(--theme-card)] p-4 rounded-xl border border-[var(--theme-border)]">
             <div>
               <h3 className="text-sm font-bold text-[var(--theme-text-primary)]">
-                Team Specialists & Founders ({teamMembers.length})
+                Team Specialists &amp; Founders ({teamMembers.length})
               </h3>
               <p className="text-xs text-[var(--theme-text-muted)] mt-0.5">
                 Manage executive leadership, upload photos directly to Cloudinary, and update bios.
@@ -918,19 +932,21 @@ export default function MasterAdminDashboard() {
 
           {/* MEMBER MODAL */}
           {isNewMemberModal && (
-            <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-              <div className="w-full max-w-xl bg-[var(--theme-card)] border border-[var(--theme-border)] rounded-2xl p-6 sm:p-8 space-y-6 shadow-2xl my-8">
-                <div className="flex justify-between items-center border-b border-[var(--theme-border)] pb-4">
-                  <h3 className="text-lg font-bold text-[var(--theme-text-primary)]">
+            <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+              <div className="w-full max-w-xl bg-[var(--theme-card)] border border-[var(--theme-border)] rounded-2xl p-5 sm:p-8 space-y-6 shadow-2xl my-auto max-h-[92vh] overflow-y-auto">
+                <div className="flex justify-between items-center border-b border-[var(--theme-border)] pb-4 sticky top-0 bg-[var(--theme-card)] z-10">
+                  <h3 className="text-base sm:text-lg font-bold text-[var(--theme-text-primary)]">
                     {editingMember ? 'Edit Profile' : 'Add Team Specialist'}
                   </h3>
                   <button
+                    type="button"
                     onClick={() => {
                       setEditingMember(null);
                       setIsNewMemberModal(false);
                       setMemberImageUrl('');
                     }}
-                    className="text-[var(--theme-text-muted)] hover:text-[var(--theme-text-primary)]"
+                    className="p-2 rounded-xl bg-[var(--theme-surface)] border border-[var(--theme-border)] text-[var(--theme-text-muted)] hover:text-white hover:border-[var(--theme-accent)] transition cursor-pointer"
+                    aria-label="Close Team Modal"
                   >
                     <X className="w-5 h-5" />
                   </button>
@@ -940,7 +956,7 @@ export default function MasterAdminDashboard() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-[11px] font-mono uppercase text-[var(--theme-text-muted)] mb-1">
-                        Full Name & Title *
+                        Full Name &amp; Title *
                       </label>
                       <input
                         required
@@ -966,7 +982,7 @@ export default function MasterAdminDashboard() {
 
                   <div>
                     <label className="block text-[11px] font-mono uppercase text-[var(--theme-text-muted)] mb-1">
-                      Academic & Professional Credentials *
+                      Academic &amp; Professional Credentials *
                     </label>
                     <input
                       required
@@ -1058,12 +1074,26 @@ export default function MasterAdminDashboard() {
                     />
                   </div>
 
-                  <button
-                    type="submit"
-                    className="w-full py-3 rounded-lg bg-[var(--theme-accent)] text-black font-bold font-mono text-xs uppercase tracking-wider hover:opacity-90 transition mt-4 cursor-pointer"
-                  >
-                    Save Specialist Profile
-                  </button>
+                  {/* Dual Action Buttons (Save + Mobile Exit) */}
+                  <div className="pt-3 flex flex-col sm:flex-row gap-2">
+                    <button
+                      type="submit"
+                      className="flex-1 py-3 rounded-lg bg-[var(--theme-accent)] text-black font-bold font-mono text-xs uppercase tracking-wider hover:opacity-90 transition cursor-pointer"
+                    >
+                      Save Specialist Profile
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingMember(null);
+                        setIsNewMemberModal(false);
+                        setMemberImageUrl('');
+                      }}
+                      className="py-3 px-5 rounded-lg bg-[var(--theme-surface)] text-[var(--theme-text-secondary)] hover:text-white border border-[var(--theme-border)] font-mono text-xs uppercase tracking-wider transition cursor-pointer text-center"
+                    >
+                      Cancel &amp; Discard
+                    </button>
+                  </div>
                 </form>
               </div>
             </div>
@@ -1078,7 +1108,7 @@ export default function MasterAdminDashboard() {
         <div className="bg-[var(--theme-card)] border border-[var(--theme-border)] rounded-2xl p-6 sm:p-8 space-y-6">
           <div>
             <h3 className="text-base font-bold text-[var(--theme-text-primary)]">
-              Corporate Office & Notification Dispatch Engine
+              Corporate Office &amp; Notification Dispatch Engine
             </h3>
             <p className="text-xs text-[var(--theme-text-muted)] mt-1 font-mono">
               The email address entered below is where all inbound project briefs and internship applications are routed.
@@ -1151,7 +1181,7 @@ export default function MasterAdminDashboard() {
 
             <div>
               <label className="block text-[11px] font-mono uppercase text-[var(--theme-text-muted)] mb-1">
-                Office Physical Address (Shown on Contact Page, Footer & Decision Letters)
+                Office Physical Address (Shown on Contact Page, Footer &amp; Decision Letters)
               </label>
               <textarea
                 name="officeAddress"
@@ -1176,7 +1206,7 @@ export default function MasterAdminDashboard() {
               type="submit"
               className="py-3 px-6 rounded-lg bg-[var(--theme-accent)] text-black font-bold font-mono text-xs uppercase tracking-wider hover:opacity-90 transition flex items-center gap-2 cursor-pointer shadow-md"
             >
-              <Save className="w-4 h-4" /> Save Office Settings & Notification Email
+              <Save className="w-4 h-4" /> Save Office Settings &amp; Notification Email
             </button>
           </form>
         </div>
@@ -1235,7 +1265,7 @@ export default function MasterAdminDashboard() {
         <div className="bg-[var(--theme-card)] border border-[var(--theme-border)] rounded-2xl p-6 sm:p-8 space-y-6 max-w-xl">
           <div>
             <h3 className="text-base font-bold text-[var(--theme-text-primary)]">
-              Admin Authentication & Passkey
+              Admin Authentication &amp; Passkey
             </h3>
             <p className="text-xs text-[var(--theme-text-muted)] mt-1 font-mono">
               Change the login email and password used to access this console.
@@ -1282,16 +1312,16 @@ export default function MasterAdminDashboard() {
       )}
 
       {/* ------------------------------------------------------------- */}
-      {/* TAB 6: INCOMING CLIENT BRIEFS & STUDENT APPLICATIONS */}
+      {/* TAB 6: INCOMING CLIENT BRIEFS, PDFS & STUDENT APPLICATIONS */}
       {/* ------------------------------------------------------------- */}
       {activeTab === 'inquiries' && (
         <div className="bg-[var(--theme-card)] border border-[var(--theme-border)] rounded-2xl p-6 sm:p-8 space-y-6">
           <div>
             <h3 className="text-base font-bold text-[var(--theme-text-primary)]">
-              Inbound Client Briefs & Student Applications ({inquiries.length})
+              Inbound Client Briefs &amp; Student Applications ({inquiries.length})
             </h3>
             <p className="text-xs text-[var(--theme-text-muted)] mt-1 font-mono">
-              Review submissions. Approving or rejecting automatically dispatches an official decision letter to the applicant's email address.
+              Review submissions. Approving or rejecting automatically dispatches an official decision letter to the applicant&apos;s email address.
             </p>
           </div>
 
@@ -1300,6 +1330,23 @@ export default function MasterAdminDashboard() {
               inquiries.map((inq) => {
                 const isInternship = inq.projectType?.includes('INTERNSHIP') || inq.scope?.includes('[STUDENT INTERNSHIP');
                 
+                // Parse attached Cloudinary PDF link from scope
+                let pdfAttachmentUrl: string | null = null;
+                let pdfAttachmentName = 'Attached_Document.pdf';
+
+                if (inq.scope) {
+                  const urlMatch = inq.scope.match(/URL:\s*(https:\/\/res\.cloudinary\.com\/[^\s\n\r]+)/i) ||
+                                   inq.scope.match(/(https:\/\/res\.cloudinary\.com\/[^\s\n\r]+\.pdf)/i);
+                  if (urlMatch) {
+                    pdfAttachmentUrl = urlMatch[1];
+                  }
+
+                  const nameMatch = inq.scope.match(/File:\s*([^\n\r]+)/i);
+                  if (nameMatch) {
+                    pdfAttachmentName = nameMatch[1].trim();
+                  }
+                }
+
                 return (
                   <div key={inq.id} className="p-5 rounded-xl bg-[var(--theme-surface)] border border-[var(--theme-border)] space-y-4">
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
@@ -1340,10 +1387,35 @@ export default function MasterAdminDashboard() {
                       </div>
                     </div>
 
+                    {/* Scope / Dossier Content */}
                     <div className="text-xs text-[var(--theme-text-secondary)] bg-[var(--theme-card)] p-4 rounded-xl border border-[var(--theme-border)] leading-relaxed whitespace-pre-line font-sans">
                       {inq.scope}
                     </div>
 
+                    {/* Direct Local PDF Download Button (Using Server Proxy Route) */}
+                    {pdfAttachmentUrl && (
+                      <div className="pt-1 flex flex-wrap items-center gap-2">
+                        <a
+                          href={`/api/download?url=${encodeURIComponent(pdfAttachmentUrl)}&name=${encodeURIComponent(pdfAttachmentName)}`}
+                          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[var(--theme-accent)] text-black text-xs font-mono font-bold uppercase tracking-wider hover:opacity-90 transition shadow-md cursor-pointer"
+                        >
+                          <FileCheck2 className="w-4 h-4 shrink-0" />
+                          <span>📥 Download PDF to Device ({pdfAttachmentName})</span>
+                        </a>
+
+                        <a
+                          href={pdfAttachmentUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[var(--theme-surface)] text-[var(--theme-text-secondary)] border border-[var(--theme-border)] text-[11px] font-mono hover:text-white transition"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                          <span>Preview in Browser</span>
+                        </a>
+                      </div>
+                    )}
+
+                    {/* Reference Media Walkthrough Links */}
                     {(inq.referenceVideo || inq.referenceAudio) && (
                       <div className="flex flex-wrap gap-4 text-xs font-mono pt-1">
                         {inq.referenceVideo && (
@@ -1359,6 +1431,7 @@ export default function MasterAdminDashboard() {
                       </div>
                     )}
 
+                    {/* Decision Action Toolbar */}
                     <div className="pt-3 border-t border-[var(--theme-border)] flex flex-wrap items-center justify-between gap-3">
                       <div className="text-[11px] font-mono text-[var(--theme-text-muted)]">
                         Target Applicant: <strong className="text-[var(--theme-text-primary)]">{inq.email}</strong>
@@ -1369,14 +1442,14 @@ export default function MasterAdminDashboard() {
                           onClick={() => handleInquiryDecision(inq.id, inq.email, 'APPROVED')}
                           className="px-3 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 border border-emerald-500/40 text-xs font-mono font-bold flex items-center gap-1 cursor-pointer transition"
                         >
-                          ✓ Approve & Send Decision Email
+                          ✓ Approve &amp; Send Decision Email
                         </button>
 
                         <button
                           onClick={() => handleInquiryDecision(inq.id, inq.email, 'REJECTED')}
                           className="px-3 py-1.5 rounded-lg bg-rose-500/20 text-rose-400 hover:bg-rose-500/30 border border-rose-500/40 text-xs font-mono font-bold flex items-center gap-1 cursor-pointer transition"
                         >
-                          ✕ Reject & Send Decision Email
+                          ✕ Reject &amp; Send Decision Email
                         </button>
                       </div>
                     </div>

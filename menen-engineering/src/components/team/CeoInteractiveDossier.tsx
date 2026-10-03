@@ -55,7 +55,7 @@ export default function CeoInteractiveDossier() {
     {
       role: 'assistant',
       content:
-        'Welcome! I am the verified Executive Dossier Assistant for **Eng. Habtamu Getu Mihret**, Co-founder and CEO of MENEN Engineering PLC.\n\nAsk me anything regarding his postgraduate studies at Chalmers University (Sweden), seismic dynamics in Italy, rural trail bridge programs with HELVETAS, or ongoing landmark high-rise structures.',
+        'Welcome! I am the verified Executive Dossier Assistant for Eng. Habtamu Getu Mihret, Co-founder and CEO of MENEN Engineering PLC.\n\nAsk me anything regarding his postgraduate studies at Chalmers University (Sweden), seismic dynamics in Italy, rural trail bridge programs with HELVETAS, or ongoing landmark high-rise structures.',
     },
   ]);
   const [input, setInput] = useState('');
