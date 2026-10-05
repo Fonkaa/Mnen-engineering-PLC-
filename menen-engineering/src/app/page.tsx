@@ -1,12 +1,11 @@
 import React from 'react';
 import Link from 'next/link';
 import { prisma } from '@/lib/prisma';
-import BlueprintPlaceholder from '@/components/projects/BlueprintPlaceholder';
 import FloatingCeoDossier from '@/components/team/FloatingCeoDossier';
+import InteractiveProjectCatalog from '@/components/projects/InteractiveProjectCatalog';
 import { 
   Building2, 
   Award, 
-  MapPin, 
   Layers, 
   Compass, 
   FileCheck, 
@@ -22,16 +21,15 @@ export const revalidate = 0;
 
 export default async function HomePage() {
   let dynamicContentMap: Record<string, string> = {};
-  let featuredProjects: any[] = [];
+  let allProjects: any[] = [];
   let leadershipTeam: any[] = [];
 
   try {
     const contents = await prisma.dynamicContent.findMany();
 
-    // Query 9 projects at once for a complete 3x3 portfolio showcase
+    // Query ALL projects from database without truncation
     const projects = await prisma.project.findMany({
       orderBy: [{ isFeatured: 'desc' }, { order: 'asc' }],
-      take: 9,
     });
 
     const team = await prisma.teamMember.findMany({
@@ -44,7 +42,7 @@ export default async function HomePage() {
       return acc;
     }, {} as Record<string, string>);
 
-    featuredProjects = projects;
+    allProjects = projects;
     leadershipTeam = team;
   } catch (error) {
     console.warn('Database query fallback triggered on landing page:', error);
@@ -63,7 +61,7 @@ export default async function HomePage() {
 
   return (
     <div className="space-y-24 pb-20 selection:bg-[var(--theme-accent)] selection:text-black">
-      
+
       {/* 1. HERO SECTION */}
       <section className="relative pt-24 pb-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto text-center">
         <div 
@@ -94,10 +92,10 @@ export default async function HomePage() {
         {/* Action Buttons */}
         <div className="mt-10 flex flex-wrap justify-center items-center gap-4">
           <Link
-            href="/projects"
+            href="#projects-catalog"
             className="px-7 py-3.5 rounded-lg bg-[var(--theme-accent)] text-black font-bold text-sm tracking-wide hover:opacity-95 transition flex items-center gap-2 shadow-lg"
           >
-            Explore Portfolio &rarr;
+            Explore All Projects &darr;
           </Link>
           <Link
             href="/submit-project"
@@ -160,7 +158,7 @@ export default async function HomePage() {
                 Mission
               </span>
               <h3 className="text-xl font-bold text-[var(--theme-text-primary)] mt-2">
-                Integrity & Opportunity
+                Integrity &amp; Opportunity
               </h3>
               <p className="mt-4 text-xs sm:text-sm text-[var(--theme-text-secondary)] leading-relaxed">
                 {txt('mission_statement', 'MENEN Engineering is committed to consistent improvement of its professional services through high level of professional integrity and commitment by creating opportunities for young and competitive professionals to apply their knowledge towards development and service of society.')}
@@ -177,7 +175,7 @@ export default async function HomePage() {
                 Values
               </span>
               <h3 className="text-xl font-bold text-[var(--theme-text-primary)] mt-2">
-                Partnership & Privacy
+                Partnership &amp; Privacy
               </h3>
               <p className="mt-4 text-xs sm:text-sm text-[var(--theme-text-secondary)] leading-relaxed">
                 {txt('values_statement', 'Carry out our responsibilities in a spirit of partnership with our clients and commit ourselves to consulting services characterized by quality, honesty, and uncompromising client privacy.')}
@@ -197,7 +195,7 @@ export default async function HomePage() {
             Capabilities
           </span>
           <h2 className="text-3xl sm:text-4xl font-extrabold text-[var(--theme-text-primary)] mt-2">
-            Scope of Architectural & Engineering Services
+            Scope of Architectural &amp; Engineering Services
           </h2>
           <p className="mt-3 text-sm text-[var(--theme-text-secondary)]">
             Covering full life-cycle infrastructure design, from 75 m² bespoke residences to 100,000 m² developments.
@@ -227,113 +225,41 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* 4. FEATURED LANDMARK PROJECTS (9 PROJECTS GRID) */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-10 gap-4">
+      {/* 4. COMPLETE LANDMARK PROJECTS CATALOG WITH LIVE SEARCH & FILTERS */}
+      <section id="projects-catalog" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 scroll-mt-20">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-8 gap-4">
           <div>
             <span className="text-xs font-mono uppercase tracking-widest text-[var(--theme-accent)] font-semibold">
-              Masterworks Portfolio
+              Complete Portfolio Directory
             </span>
             <h2 className="text-3xl sm:text-4xl font-extrabold text-[var(--theme-text-primary)] mt-1">
-              Selected Landmark Projects ({featuredProjects.length})
+              All Landmark Projects ({allProjects.length})
             </h2>
             <p className="text-xs text-[var(--theme-text-secondary)] mt-1">
-              Schematic prize winners, high-rises, hotels, and national infrastructure across Ethiopia.
+              Search and filter across all commercial, residential, infrastructure, and institutional projects.
             </p>
           </div>
 
           <Link
-            href="/projects"
+            href="/submit-project"
             className="inline-flex items-center gap-2 text-xs font-bold font-mono text-[var(--theme-accent)] hover:underline"
           >
-            All 19+ Projects Dossier &rarr;
+            Submit Project Brief &rarr;
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {featuredProjects.length > 0 ? (
-            featuredProjects.map((p) => {
-              // Valid Cloudinary CDN check
-              const validImage = p.featuredImage && 
-                !p.featuredImage.startsWith('/uploads/') && 
-                !p.featuredImage.includes('/images/projects/placeholders/') 
-                ? p.featuredImage 
-                : null;
-
-              return (
-                <div
-                  key={p.id}
-                  className="bg-[var(--theme-card)] border border-[var(--theme-border)] rounded-2xl overflow-hidden hover:border-[var(--theme-accent)] transition flex flex-col justify-between group shadow-sm"
-                >
-                  <div className="relative aspect-[16/10] bg-[var(--theme-surface)] overflow-hidden">
-                    {validImage ? (
-                      <img
-                        src={validImage}
-                        alt={p.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
-                      />
-                    ) : (
-                      <BlueprintPlaceholder title={p.title} category={p.category} />
-                    )}
-
-                    <div className="absolute top-3 right-3 bg-[var(--theme-surface)]/90 backdrop-blur-md px-2 py-1 rounded text-[10px] font-mono text-[var(--theme-accent)] border border-[var(--theme-border)] font-bold">
-                      {p.category}
-                    </div>
-                  </div>
-
-                  <div className="p-6 flex-1 flex flex-col justify-between">
-                    <div>
-                      {p.awards && (
-                        <div className="flex items-center gap-1.5 text-[11px] text-[var(--theme-accent)] font-semibold mb-2 font-mono">
-                          <Award className="w-3.5 h-3.5 shrink-0" />
-                          <span className="truncate">{p.awards}</span>
-                        </div>
-                      )}
-
-                      <h3 className="text-lg font-bold text-[var(--theme-text-primary)] group-hover:text-[var(--theme-accent)] transition">
-                        {p.title}
-                      </h3>
-
-                      <p className="text-xs text-[var(--theme-text-secondary)] mt-1.5">
-                        Client: <span className="font-semibold text-[var(--theme-text-primary)]">{p.client}</span>
-                      </p>
-
-                      <p className="text-xs text-[var(--theme-text-muted)] mt-2.5 line-clamp-2 leading-relaxed">
-                        {p.scopeOfWork}
-                      </p>
-                    </div>
-
-                    <div className="mt-5 pt-4 border-t border-[var(--theme-border)] flex items-center justify-between text-xs font-mono">
-                      <span className="text-[var(--theme-text-muted)] flex items-center gap-1">
-                        <MapPin className="w-3.5 h-3.5 text-[var(--theme-accent)]" /> {p.location}
-                      </span>
-                      <Link
-                        href={`/projects/${p.slug}`}
-                        className="text-[var(--theme-accent)] font-semibold hover:underline"
-                      >
-                        Dossier &rarr;
-                      </Link>
-                    </div>
-                  </div>
-                </div>
-              );
-            })
-          ) : (
-            <div className="col-span-3 text-center py-12 text-sm text-[var(--theme-text-muted)] border border-dashed border-[var(--theme-border)] rounded-2xl">
-              Projects catalog is loading or syncing with database.
-            </div>
-          )}
-        </div>
+        {/* Interactive Client Search & Filter Component */}
+        <InteractiveProjectCatalog initialProjects={allProjects} />
       </section>
 
       {/* 5. LEADERSHIP & SPECIALISTS HIGHLIGHT */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center max-w-3xl mx-auto mb-14">
           <span className="text-xs font-mono uppercase tracking-widest text-[var(--theme-accent)] font-semibold">
-            Founders & Directors
+            Founders &amp; Directors
           </span>
           <h2 className="text-3xl sm:text-4xl font-extrabold text-[var(--theme-text-primary)] mt-2">
-            Engineering & Design Leadership
+            Engineering &amp; Design Leadership
           </h2>
           <p className="mt-2 text-xs sm:text-sm text-[var(--theme-text-secondary)]">
             A combination of international postgraduate training and extensive domestic practice.
@@ -385,7 +311,7 @@ export default async function HomePage() {
                     href="/team"
                     className="text-xs text-[var(--theme-text-primary)] font-semibold hover:text-[var(--theme-accent)] transition"
                   >
-                    Full Bio & Portfolio &rarr;
+                    Full Bio &amp; Portfolio &rarr;
                   </Link>
 
                   {leader.linkedinUrl && (
@@ -435,10 +361,11 @@ export default async function HomePage() {
               Contact Office
             </Link>
           </div>
-          {/* Eng. Habtamu Getu Executive Dossier (Bottom Right) */}
-      <FloatingCeoDossier />
         </div>
       </section>
+
+      {/* Eng. Habtamu Getu Executive Dossier (Bottom Right Docked) */}
+      <FloatingCeoDossier />
 
     </div>
   );
