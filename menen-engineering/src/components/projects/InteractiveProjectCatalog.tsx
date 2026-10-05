@@ -38,28 +38,48 @@ export default function InteractiveProjectCatalog({ initialProjects }: Interacti
   const [hasVideo, setHasVideo] = useState(false);
   const [hasAudio, setHasAudio] = useState(false);
 
-  // Extract unique cities/regions dynamically from database projects
+  // Extract all distinct locations dynamically (including Jimma and Sekota)
   const availableLocations = useMemo(() => {
     const locSet = new Set<string>();
+
+    // Seed key target cities in case records have regional suffixes
+    ['Addis Ababa', 'Jimma', 'Sekota', 'Hawassa', 'Bahir Dar', 'Adama', 'Dire Dawa'].forEach((loc) => {
+      locSet.add(loc);
+    });
+
     initialProjects.forEach((p) => {
-      if (p.location && p.location.trim()) {
-        locSet.add(p.location.trim());
+      if (p.location && typeof p.location === 'string' && p.location.trim()) {
+        const raw = p.location.trim();
+        locSet.add(raw);
+        // Also extract city name before comma (e.g. "Jimma, Oromia" -> "Jimma")
+        if (raw.includes(',')) {
+          locSet.add(raw.split(',')[0].trim());
+        }
       }
     });
+
     return Array.from(locSet).sort();
   }, [initialProjects]);
 
-  // Combined Multi-Criteria Filter Logic
+  // Combined Multi-Criteria Filter Logic matching /projects
   const filteredProjects = useMemo(() => {
+    const q = searchQuery.toLowerCase().trim();
+
     return initialProjects.filter((p) => {
-      // 1. Typology Classification Filter
+      // 1. Typology Classification
       const matchesCategory = category === 'ALL' || p.category === category;
 
-      // 2. Project Status Filter
+      // 2. Project Status
       const matchesStatus = status === 'ALL' || p.status === status;
 
-      // 3. Location / Region Filter
-      const matchesLocation = location === 'ALL' || p.location === location;
+      // 3. Location / Region (Fuzzy Substring Match for Jimma, Sekota, etc.)
+      const projectLoc = (p.location || '').toLowerCase();
+      const selectedLoc = location.toLowerCase().trim();
+      const matchesLocation =
+        location === 'ALL' ||
+        projectLoc === selectedLoc ||
+        projectLoc.includes(selectedLoc) ||
+        selectedLoc.includes(projectLoc);
 
       // 4. VR / Video Walkthrough Toggle
       const matchesVideo = !hasVideo || Boolean(p.featuredVideo);
@@ -67,16 +87,15 @@ export default function InteractiveProjectCatalog({ initialProjects }: Interacti
       // 5. Audio Narrative / Brief Toggle
       const matchesAudio = !hasAudio || Boolean(p.audioNarrative);
 
-      // 6. Text Search Filter (Title, Client, Scope, Awards, Location)
-      const q = searchQuery.toLowerCase().trim();
+      // 6. Text Search: Title, Client, Location, Scope, Category, Awards
       const matchesSearch =
         !q ||
-        p.title?.toLowerCase().includes(q) ||
-        p.client?.toLowerCase().includes(q) ||
-        p.location?.toLowerCase().includes(q) ||
-        p.scopeOfWork?.toLowerCase().includes(q) ||
-        p.category?.toLowerCase().includes(q) ||
-        p.awards?.toLowerCase().includes(q);
+        (p.title && p.title.toLowerCase().includes(q)) ||
+        (p.client && p.client.toLowerCase().includes(q)) ||
+        (p.location && p.location.toLowerCase().includes(q)) ||
+        (p.scopeOfWork && p.scopeOfWork.toLowerCase().includes(q)) ||
+        (p.category && p.category.toLowerCase().includes(q)) ||
+        (p.awards && p.awards.toLowerCase().includes(q));
 
       return (
         matchesCategory &&
@@ -119,7 +138,7 @@ export default function InteractiveProjectCatalog({ initialProjects }: Interacti
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search projects by title, client, city, awards, or scope..."
+              placeholder="Search projects by title, client, city (e.g. Jimma, Sekota), awards..."
               className="w-full bg-[var(--theme-surface)] border border-[var(--theme-border)] rounded-xl pl-10 pr-10 py-2.5 text-xs sm:text-sm text-[var(--theme-text-primary)] placeholder-[var(--theme-text-muted)] focus:outline-none focus:border-[var(--theme-accent)] transition font-sans"
             />
             {searchQuery && (

@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Menu, X, Key, Phone } from 'lucide-react';
+import { Menu, X, Key, Phone, Home } from 'lucide-react';
 import ThemeSwitcher from './ThemeSwitcher';
 
 interface NavbarProps {
@@ -18,7 +18,7 @@ export default function Navbar({ companyName, primaryPhone }: NavbarProps) {
     <header className="sticky top-0 z-50 backdrop-blur-md bg-[var(--theme-bg)]/95 border-b border-[var(--theme-border)]">
       <div className="max-w-7xl mx-auto px-4 h-20 sm:h-24 flex items-center justify-between gap-4">
         
-        {/* Left Side: Full Visible Logo (No clipping, completely visible) + Title */}
+        {/* Left Side: Full Visible Logo + Title (clicking always redirects home) */}
         <Link href="/" className="flex items-center gap-3.5 group shrink-0">
           <div className="relative w-28 sm:w-36 lg:w-44 h-12 sm:h-14 lg:h-16 rounded-xl overflow-hidden bg-white p-1 border border-[var(--theme-border)] group-hover:border-[var(--theme-accent)] transition shadow-sm flex items-center justify-center">
             <Image
@@ -42,6 +42,13 @@ export default function Navbar({ companyName, primaryPhone }: NavbarProps) {
 
         {/* Desktop Navigation Links */}
         <nav className="hidden lg:flex items-center gap-7 text-xs font-semibold uppercase tracking-wider text-[var(--theme-text-secondary)]">
+          <Link 
+            href="/" 
+            className="flex items-center gap-1.5 hover:text-[var(--theme-accent)] transition"
+          >
+            <Home className="w-3.5 h-3.5" />
+            Home
+          </Link>
           <Link href="/projects" className="hover:text-[var(--theme-accent)] transition">
             Projects
           </Link>
@@ -56,7 +63,7 @@ export default function Navbar({ companyName, primaryPhone }: NavbarProps) {
           </Link>
         </nav>
 
-        {/* Right Side Actions: Theme, Key-only Admin, Full Visible Right Logo & Mobile Hamburger */}
+        {/* Right Side Actions: Theme, Key-only Admin, Mobile Hamburger */}
         <div className="flex items-center gap-2 sm:gap-3">
           <ThemeSwitcher />
 
@@ -77,11 +84,12 @@ export default function Navbar({ companyName, primaryPhone }: NavbarProps) {
           >
             Request Proposal
           </Link>
-          {/* Mobile Hamburger / Jambo Toggle Button */}
+
+          {/* Mobile Hamburger Button */}
           <button
             type="button"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="lg:hidden p-2.5 rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface)] text-[var(--theme-text-primary)] hover:border-[var(--theme-accent)] transition"
+            className="lg:hidden p-2.5 rounded-xl border border-[var(--theme-border)] bg-[var(--theme-surface)] text-[var(--theme-text-primary)] hover:border-[var(--theme-accent)] transition cursor-pointer"
             aria-label="Toggle Menu"
           >
             {mobileMenuOpen ? <X className="w-5 h-5 text-[var(--theme-accent)]" /> : <Menu className="w-5 h-5" />}
@@ -89,35 +97,43 @@ export default function Navbar({ companyName, primaryPhone }: NavbarProps) {
         </div>
       </div>
 
-      {/* Mobile Top-Down Dropdown Menu (Jambo) */}
+      {/* Mobile Top-Down Dropdown Menu */}
       {mobileMenuOpen && (
         <div className="lg:hidden border-t border-[var(--theme-border)] bg-[var(--theme-card)]/98 px-5 py-6 space-y-4 shadow-2xl backdrop-blur-xl animate-in slide-in-from-top duration-200">
-          <nav className="flex flex-col space-y-3 text-sm font-mono uppercase tracking-wider font-semibold border-b border-[var(--theme-border)] pb-4">
+          <nav className="flex flex-col space-y-2 text-sm font-mono uppercase tracking-wider font-semibold border-b border-[var(--theme-border)] pb-4">
+            <Link
+              href="/"
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg bg-[var(--theme-surface)]/60 text-[var(--theme-accent)] font-bold transition"
+            >
+              <Home className="w-4 h-4" />
+              Home
+            </Link>
             <Link
               href="/projects"
               onClick={() => setMobileMenuOpen(false)}
-              className="px-3 py-2 rounded-lg hover:bg-[var(--theme-surface)] text-[var(--theme-text-primary)] hover:text-[var(--theme-accent)] transition"
+              className="px-3 py-2.5 rounded-lg hover:bg-[var(--theme-surface)] text-[var(--theme-text-primary)] hover:text-[var(--theme-accent)] transition"
             >
               Projects
             </Link>
             <Link
               href="/team"
               onClick={() => setMobileMenuOpen(false)}
-              className="px-3 py-2 rounded-lg hover:bg-[var(--theme-surface)] text-[var(--theme-text-primary)] hover:text-[var(--theme-accent)] transition"
+              className="px-3 py-2.5 rounded-lg hover:bg-[var(--theme-surface)] text-[var(--theme-text-primary)] hover:text-[var(--theme-accent)] transition"
             >
               Specialists &amp; Team
             </Link>
             <Link
               href="/submit-project"
               onClick={() => setMobileMenuOpen(false)}
-              className="px-3 py-2 rounded-lg hover:bg-[var(--theme-surface)] text-[var(--theme-text-primary)] hover:text-[var(--theme-accent)] transition"
+              className="px-3 py-2.5 rounded-lg hover:bg-[var(--theme-surface)] text-[var(--theme-text-primary)] hover:text-[var(--theme-accent)] transition"
             >
               Submit Brief
             </Link>
             <Link
               href="/contact"
               onClick={() => setMobileMenuOpen(false)}
-              className="px-3 py-2 rounded-lg hover:bg-[var(--theme-surface)] text-[var(--theme-text-primary)] hover:text-[var(--theme-accent)] transition"
+              className="px-3 py-2.5 rounded-lg hover:bg-[var(--theme-surface)] text-[var(--theme-text-primary)] hover:text-[var(--theme-accent)] transition"
             >
               Contact
             </Link>

@@ -11,12 +11,12 @@ import {
   PhoneCall, 
   Bot, 
   User, 
-  Briefcase,
   GraduationCap,
-  Building,
+  Building2,
   Layers,
-  X,
-  MessageSquare
+  ShieldCheck,
+  FolderOpen,
+  X
 } from 'lucide-react';
 
 interface Message {
@@ -24,41 +24,64 @@ interface Message {
   content: string;
 }
 
-const PRESET_QUERIES = [
+// 22 Curated Pre-set Questions grouped by domain
+const PRESET_GROUPS = [
   {
+    group: 'Leadership & Academics',
     icon: GraduationCap,
-    label: '🎓 Chalmers & European Degrees',
-    query: 'What are Eng. Habtamu’s academic degrees from Chalmers University in Sweden, Italy, and AAiT?',
+    items: [
+      { label: '🎓 Chalmers MSc (Sweden)', query: "What are Eng. Habtamu's postgraduate degrees from Chalmers University in Sweden?" },
+      { label: '🏛️ Messina Seismic Safety (Italy)', query: "What specialized seismic certification did he obtain in Messina, Italy?" },
+      { label: '🔬 AAiT Steel Web Thesis', query: "What was Eng. Habtamu's Master's research at Addis Ababa Institute of Technology (AAiT)?" },
+      { label: '📜 Bahir Dar Civil BSc', query: "Where did Eng. Habtamu complete his undergraduate civil engineering training?" },
+      { label: '💼 Career & Fasil Giorghis', query: "What historic landmark restorations did Eng. Habtamu engineer with Fasil Giorghis Consult?" },
+    ]
   },
   {
+    group: 'Landmark Projects',
+    icon: Building2,
+    items: [
+      { label: '🏆 4B+G+M+23 KK Tower', query: "What are the engineering details of the 1st-Prize 4B+G+M+23 Tower for KK PLC?" },
+      { label: '🏢 3B+G+22 Bullaleas Tower', query: "How did MENEN engineer the 3B+G+22 Bullaleas Luxury Apartment Tower?" },
+      { label: '🌊 8 Towers Lakeside Masterplan', query: "What is the scale of the 8 Towers Lakeside Masterplan in Bahir Dar?" },
+      { label: '🏛️ National Palace Visitors Pavilion', query: "What is MENEN's role in the National Palace Visitors Reception Pavilion?" },
+      { label: '🛂 37 Border Clearance Stations', query: "What is the 37 Modular Border Clearance Stations project across Ethiopia?" },
+      { label: '🌉 HELVETAS Trail Bridges', query: "How did he train regional road bureaus and HELVETAS in trail bridge construction?" },
+    ]
+  },
+  {
+    group: 'Technical Modeling & FEA',
     icon: Layers,
-    label: '🌉 Trail Bridges & HELVETAS',
-    query: 'Tell me about his work with HELVETAS and regional road bureaus on trail bridge infrastructure.',
+    items: [
+      { label: '💻 ETABS, Abaqus & Software', query: "What finite element and structural analysis software does Eng. Habtamu use?" },
+      { label: '🏗️ Deep Basement Shoring', query: "How does MENEN handle deep subterranean basements and neighbor protection?" },
+      { label: '🔧 Building Retrofit & NDT', query: "Can MENEN assess cracked, damaged, or unpermitted existing buildings for retrofitting?" },
+      { label: '🌲 Mass Timber & Carbon', query: "What is Eng. Habtamu's background in Mass Timber and low-carbon engineering?" },
+    ]
   },
   {
-    icon: Building,
-    label: '🏢 High-Rise & Seismic Modeling',
-    query: 'What software (Tekla, Abaqus, ETABS) and seismic training from Italy does he apply to towers?',
-  },
-  {
-    icon: Briefcase,
-    label: '🏛️ Career & Heritage Conservation',
-    query: 'Tell me about his past work with Fasil Giorghis Consult and Akademiska Hus in Sweden.',
-  },
-  {
-    icon: PhoneCall,
-    label: '📞 Book Meeting & Direct Contacts',
-    query: 'How do I contact Eng. Habtamu directly or submit a project brief?',
-  },
+    group: 'Operations, Legal & Contact',
+    icon: ShieldCheck,
+    items: [
+      { label: '🛡️ Category 1 Legal Scope', query: "What does MENEN Engineering’s Category 1 designation legally authorize?" },
+      { label: '🏛️ Municipal Permit Approvals', query: "Does MENEN handle Addis Ababa City Hall building permit approvals?" },
+      { label: '📋 Bank-Grade BOQ & Tenders', query: "What is included in MENEN’s Technical Specifications and BOQ packages?" },
+      { label: '👷 Resident Site Supervision', query: "Does MENEN provide resident site supervision during construction?" },
+      { label: '💰 Engineering Fees & Pricing', query: "How are consulting fees structured and how fast are proposals prepared?" },
+      { label: '🎓 Student Internship Program', query: "How does MENEN select and mentor university engineering interns?" },
+      { label: '📞 Direct Contact & Booking', query: "What are all verified telephone numbers, emails, and physical office coordinates?" },
+    ]
+  }
 ];
 
 export default function FloatingCeoDossier() {
   const [isOpen, setIsOpen] = useState(false);
+  const [activeGroupIndex, setActiveGroupIndex] = useState(0);
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
       content:
-        'Welcome! I am the verified Executive Dossier Assistant for Eng. Habtamu Getu Mihret, Co-founder and CEO of MENEN Engineering PLC.\n\nAsk me anything regarding his postgraduate studies at Chalmers University (Sweden), seismic dynamics in Italy, rural trail bridge programs with HELVETAS, or ongoing landmark high-rise structures.',
+        'Welcome! I am the verified Executive Intelligence Dossier for Eng. Habtamu Getu Mihret, Co-founder and CEO of MENEN Engineering PLC.\n\nAsk me anything regarding his postgraduate studies at Chalmers University (Sweden), seismic dynamics in Italy, high-rise structural modeling, or corporate Category 1 consulting capabilities.',
     },
   ]);
   const [input, setInput] = useState('');
@@ -74,7 +97,7 @@ export default function FloatingCeoDossier() {
     const textToSend = queryText.trim();
     if (!textToSend) return;
 
-    // Instantly get the answer from the local custom knowledge engine
+    // Instantly retrieve verified response from local knowledge engine
     const answer = queryCeoKnowledge(textToSend);
 
     setMessages((prev) => [
@@ -90,7 +113,7 @@ export default function FloatingCeoDossier() {
     <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
       {/* Pop-up Dossier Modal Window */}
       {isOpen && (
-        <div className="w-[94vw] sm:w-[460px] md:w-[520px] max-h-[85vh] bg-[var(--theme-card)] border border-[var(--theme-border)] rounded-3xl overflow-hidden shadow-2xl flex flex-col mb-4 backdrop-blur-xl animate-in slide-in-from-bottom-5 duration-200">
+        <div className="w-[94vw] sm:w-[500px] md:w-[560px] max-h-[88vh] bg-[var(--theme-card)] border border-[var(--theme-border)] rounded-3xl overflow-hidden shadow-2xl flex flex-col mb-4 backdrop-blur-xl animate-in slide-in-from-bottom-5 duration-200">
           
           {/* Header Banner */}
           <div className="bg-[var(--theme-surface)] border-b border-[var(--theme-border)] p-4 sm:p-5 flex flex-col gap-3">
@@ -101,7 +124,7 @@ export default function FloatingCeoDossier() {
                     <Sparkles className="w-3 h-3" /> Executive Dossier
                   </span>
                   <span className="text-[10px] font-mono text-emerald-400 font-semibold flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Verified Live
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> 24 Verified Domains
                   </span>
                 </div>
 
@@ -152,18 +175,48 @@ export default function FloatingCeoDossier() {
             </div>
           </div>
 
-          {/* Suggested 1-Click Action Chips */}
-          <div className="p-3 sm:p-4 bg-[var(--theme-surface)]/50 border-b border-[var(--theme-border)] shrink-0">
-            <p className="text-[10px] font-mono uppercase text-[var(--theme-text-muted)] tracking-wider mb-2 font-semibold">
-              Select verified topic:
-            </p>
-            <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto">
-              {PRESET_QUERIES.map((preset, idx) => (
+          {/* Categorized Question Selector (22 Pre-set Queries) */}
+          <div className="p-3 sm:p-4 bg-[var(--theme-surface)]/60 border-b border-[var(--theme-border)] space-y-2.5 shrink-0">
+            <div className="flex items-center justify-between">
+              <p className="text-[10px] font-mono uppercase text-[var(--theme-text-muted)] tracking-wider font-semibold flex items-center gap-1">
+                <FolderOpen className="w-3 h-3 text-[var(--theme-accent)]" /> Explore Topics (22 Verified Queries):
+              </p>
+              <span className="text-[10px] font-mono text-[var(--theme-accent)]">
+                {activeGroupIndex + 1}/{PRESET_GROUPS.length}
+              </span>
+            </div>
+
+            {/* Category Filter Tabs */}
+            <div className="flex flex-wrap gap-1.5 border-b border-[var(--theme-border)] pb-2">
+              {PRESET_GROUPS.map((grp, idx) => {
+                const Icon = grp.icon;
+                const isSelected = activeGroupIndex === idx;
+                return (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => setActiveGroupIndex(idx)}
+                    className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-mono transition cursor-pointer ${
+                      isSelected
+                        ? 'bg-[var(--theme-accent)] text-black font-bold shadow-xs'
+                        : 'bg-[var(--theme-card)] text-[var(--theme-text-secondary)] border border-[var(--theme-border)] hover:border-[var(--theme-accent)]'
+                    }`}
+                  >
+                    <Icon className="w-3 h-3" />
+                    <span>{grp.group}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Chips for Active Group */}
+            <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto pt-0.5">
+              {PRESET_GROUPS[activeGroupIndex].items.map((preset, idx) => (
                 <button
                   key={idx}
                   type="button"
                   onClick={() => handleSend(preset.query)}
-                  className="text-[11px] font-mono px-2.5 py-1 rounded-lg bg-[var(--theme-card)] border border-[var(--theme-border)] text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] hover:border-[var(--theme-accent)] transition cursor-pointer text-left flex items-center gap-1"
+                  className="text-[11px] font-mono px-2.5 py-1 rounded-lg bg-[var(--theme-card)] border border-[var(--theme-border)] text-[var(--theme-text-secondary)] hover:text-[var(--theme-text-primary)] hover:border-[var(--theme-accent)] transition cursor-pointer text-left shadow-xs"
                 >
                   {preset.label}
                 </button>
@@ -215,7 +268,7 @@ export default function FloatingCeoDossier() {
             <input
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Ask about Eng. Habtamu (Chalmers, seismic, towers)..."
+              placeholder="Ask about Eng. Habtamu (seismic, Chalmers, KK tower, permits)..."
               className="flex-1 bg-[var(--theme-card)] border border-[var(--theme-border)] rounded-xl px-3 py-2 text-xs text-[var(--theme-text-primary)] placeholder-[var(--theme-text-muted)] focus:outline-none focus:border-[var(--theme-accent)] font-sans"
             />
             <button
@@ -230,7 +283,7 @@ export default function FloatingCeoDossier() {
         </div>
       )}
 
-      {/* Collapsed Floating Trigger Badge (Always visible at bottom right) */}
+      {/* Collapsed Floating Trigger Badge (Always docked at bottom right) */}
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
