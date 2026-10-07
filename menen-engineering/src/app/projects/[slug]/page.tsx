@@ -2,10 +2,11 @@ import React from 'react';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { prisma } from '@/lib/prisma';
-import BlueprintPlaceholder from '@/components/projects/BlueprintPlaceholder';
+import Project3DRotator from '@/components/projects/Project3DRotator';
 import { Award, MapPin, Building2, ArrowLeft, Video, Volume2, ShieldCheck, CheckCircle2 } from 'lucide-react';
 
-export const revalidate = 60;
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export default async function ProjectDossierPage({
   params,
@@ -27,13 +28,20 @@ export default async function ProjectDossierPage({
     notFound();
   }
 
+  // Normalize gallery images array for the 360 rotator
+  const galleryList = Array.isArray(project.galleryImages)
+    ? project.galleryImages
+    : project.featuredImage
+    ? [project.featuredImage]
+    : [];
+
   return (
     <div className="py-12 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
       {/* Back button */}
       <div>
         <Link
           href="/projects"
-          className="inline-flex items-center gap-2 text-xs font-mono uppercase tracking-wider text-[var(--theme-text-secondary)] hover:text-[var(--theme-accent)] transition"
+          className="inline-flex items-center gap-2 text-xs font-mono uppercase tracking-wider text-[var(--theme-text-secondary)] hover:text-[var(--theme-accent)] transition cursor-pointer"
         >
           <ArrowLeft className="w-3.5 h-3.5" /> Back to Project Catalog
         </Link>
@@ -66,20 +74,17 @@ export default async function ProjectDossierPage({
       {/* Media & Details Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
         
-        {/* Left 2 Columns: Visual Media & Walkthroughs */}
+        {/* Left 2 Columns: Visual Media with 360 Turntable & Walkthroughs */}
         <div className="lg:col-span-2 space-y-8">
-          <div className="rounded-2xl border border-[var(--theme-border)] overflow-hidden bg-[var(--theme-surface)] shadow-lg">
-            {project.featuredImage ? (
-              <img
-                src={project.featuredImage}
-                alt={project.title}
-                className="w-full h-auto object-cover max-h-[500px]"
-              />
-            ) : (
-              <div className="h-80 sm:h-96">
-                <BlueprintPlaceholder title={project.title} category={project.category} />
-              </div>
-            )}
+          
+          {/* 360° Circular Dynamic Turntable Display */}
+          <div className="rounded-2xl border border-[var(--theme-border)] overflow-hidden bg-[var(--theme-surface)] shadow-lg aspect-[16/10] sm:aspect-[16/9] max-h-[520px] relative">
+            <Project3DRotator
+              title={project.title}
+              category={project.category}
+              featuredImage={project.featuredImage}
+              galleryImages={galleryList}
+            />
           </div>
 
           {/* Video Walkthrough Player (if URL provided) */}
@@ -126,7 +131,7 @@ export default async function ProjectDossierPage({
               <h3 className="text-sm font-mono uppercase tracking-widest text-[var(--theme-accent)] font-bold mb-3">
                 Architectural Summary
               </h3>
-              <p className="text-sm text-[var(--theme-text-secondary)] leading-relaxed">
+              <p className="text-sm text-[var(--theme-text-secondary)] leading-relaxed whitespace-pre-line">
                 {project.description}
               </p>
             </div>
@@ -164,7 +169,7 @@ export default async function ProjectDossierPage({
 
             <div>
               <span className="block text-[11px] font-mono uppercase text-[var(--theme-text-muted)]">Scope of Work</span>
-              <p className="text-xs text-[var(--theme-text-secondary)] mt-1 leading-relaxed bg-[var(--theme-surface)] p-3 rounded-lg border border-[var(--theme-border)]">
+              <p className="text-xs text-[var(--theme-text-secondary)] mt-1 leading-relaxed bg-[var(--theme-surface)] p-3 rounded-lg border border-[var(--theme-border)] whitespace-pre-line">
                 {project.scopeOfWork}
               </p>
             </div>
@@ -180,7 +185,7 @@ export default async function ProjectDossierPage({
             </p>
             <Link
               href="/submit-project"
-              className="block w-full py-2.5 rounded-lg bg-[var(--theme-accent)] text-black font-bold text-xs uppercase tracking-wider hover:opacity-90 transition font-mono"
+              className="block w-full py-2.5 rounded-lg bg-[var(--theme-accent)] text-black font-bold text-xs uppercase tracking-wider hover:opacity-90 transition font-mono cursor-pointer"
             >
               Submit Brief
             </Link>

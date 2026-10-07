@@ -74,3 +74,20 @@ body {
   transition: background-color 0.3s ease, color 0.3s ease;
   font-feature-settings: "cv02", "cv03", "cv04", "cv11";
 }
+@keyframes spinLogo360 {
+  0% {
+    transform: rotateY(0deg);
+  }
+  100% {
+    transform: rotateY(360deg);
+  }
+}
+
+.animate-spin-360 {
+  animation: spinLogo360 8s linear infinite;
+  transform-style: preserve-3d;
+}
+
+.pause-spin {
+  animation-play-state: paused;
+}

@@ -100,9 +100,10 @@ model Project {
   scopeOfWork     String         @db.Text
   awards          String?        // e.g. "1st Prize Awarded Schematic Design Project"
   description     String?        @db.Text
-  featuredImage   String?        // If null, UI renders high-contrast blueprint CAD placeholder
+  featuredImage   String?        // Primary thumbnail
+  galleryImages   String[]       @default([]) // Minimum 5 images stored here
   featuredVideo   String?        // Walkthrough video / VR presentation URL
-  audioNarrative  String?        // Audio walkthrough / architectural presentation audio URL
+  audioNarrative  String?        // Audio walkthrough URL
   order           Int            @default(0)
   isFeatured      Boolean        @default(false)
   createdAt       DateTime       @default(now())

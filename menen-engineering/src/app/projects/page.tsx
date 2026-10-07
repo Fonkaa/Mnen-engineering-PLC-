@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
+import Project3DRotator from '@/components/projects/Project3DRotator';
 import { 
   Award, 
   MapPin, 
@@ -12,7 +13,7 @@ import {
   X, 
   Layers, 
   Building2,
-  Compass
+  RotateCcw
 } from 'lucide-react';
 
 interface ProjectItem {
@@ -27,50 +28,9 @@ interface ProjectItem {
   scopeOfWork: string;
   awards?: string | null;
   featuredImage?: string | null;
+  galleryImages?: string[];
   featuredVideo?: string | null;
   audioNarrative?: string | null;
-}
-
-// Built-in Blueprint CAD Fallback Component
-function BlueprintPlaceholder({ title, category }: { title: string; category?: string }) {
-  return (
-    <div className="w-full h-full min-h-[220px] bg-[var(--theme-surface)] relative overflow-hidden flex flex-col items-center justify-center p-6 border-b border-[var(--theme-border)] select-none">
-      <div 
-        className="absolute inset-0 opacity-15"
-        style={{
-          backgroundImage: `
-            linear-gradient(to right, var(--theme-accent) 1px, transparent 1px),
-            linear-gradient(to bottom, var(--theme-accent) 1px, transparent 1px)
-          `,
-          backgroundSize: '24px 24px'
-        }}
-      />
-      <div className="absolute top-2 left-2 text-[9px] font-mono text-[var(--theme-text-muted)]">
-        + 09°01'48"N / 38°44'24"E
-      </div>
-      <div className="absolute top-2 right-2 text-[9px] font-mono text-[var(--theme-accent)]">
-        [{category || 'CAD'}]
-      </div>
-      <div className="absolute bottom-2 left-2 text-[9px] font-mono text-[var(--theme-text-muted)]">
-        SCALE 1:100 / ELEVATION
-      </div>
-      <div className="absolute bottom-2 right-2 text-[9px] font-mono text-[var(--theme-text-muted)]">
-        MENEN CAE PLC
-      </div>
-
-      <div className="relative z-10 flex flex-col items-center text-center">
-        <div className="w-12 h-12 rounded-full border border-[var(--theme-accent)]/50 bg-[var(--theme-card)] flex items-center justify-center mb-3 text-[var(--theme-accent)] shadow-inner">
-          <Compass className="w-6 h-6 animate-pulse" />
-        </div>
-        <p className="text-xs uppercase font-mono tracking-widest text-[var(--theme-text-primary)] font-bold">
-          {title}
-        </p>
-        <span className="text-[10px] text-[var(--theme-text-muted)] mt-1 font-mono">
-          Architectural Schematic • Media In Review
-        </span>
-      </div>
-    </div>
-  );
 }
 
 const CATEGORIES = [
@@ -122,59 +82,72 @@ export default function ProjectsPage() {
     loadProjects();
   }, []);
 
+  // Normalized location extraction including regional cities (Jimma, Sekota, etc.)
   const uniqueLocations = useMemo(() => {
-    if (!projects.length) return ['ALL'];
-    const locs = Array.from(new Set(projects.map((p) => (p.location ? p.location.trim() : '')))).filter(Boolean);
-    return ['ALL', ...locs.sort()];
+    const locSet = new Set<string>();
+    ['Addis Ababa', 'Jimma', 'Sekota', 'Hawassa', 'Bahir Dar', 'Adama', 'Dire Dawa'].forEach((l) => locSet.add(l));
+
+    projects.forEach((p) => {
+      if (p.location && typeof p.location === 'string' && p.location.trim()) {
+        const raw = p.location.trim();
+        locSet.add(raw);
+        if (raw.includes(',')) {
+          locSet.add(raw.split(',')[0].trim());
+        }
+      }
+    });
+
+    return ['ALL', ...Array.from(locSet).sort()];
   }, [projects]);
 
-  // Robust, fail-safe filtering
+  // Robust, fail-safe substring & 3D matching
   const filteredProjects = useMemo(() => {
     if (!projects.length) return [];
 
     return projects.filter((project) => {
-      // 1. Text Search query
       const q = searchQuery.toLowerCase().trim();
-      if (q) {
-        const title = (project.title || '').toLowerCase();
-        const client = (project.client || '').toLowerCase();
-        const location = (project.location || '').toLowerCase();
-        const scope = (project.scopeOfWork || '').toLowerCase();
-        const awards = (project.awards || '').toLowerCase();
 
-        const matches =
-          title.includes(q) ||
-          client.includes(q) ||
-          location.includes(q) ||
-          scope.includes(q) ||
-          awards.includes(q);
-
-        if (!matches) return false;
-      }
+      // 1. Text Search query
+      const matchesSearch =
+        !q ||
+        (project.title && project.title.toLowerCase().includes(q)) ||
+        (project.client && project.client.toLowerCase().includes(q)) ||
+        (project.location && project.location.toLowerCase().includes(q)) ||
+        (project.scopeOfWork && project.scopeOfWork.toLowerCase().includes(q)) ||
+        (project.category && project.category.toLowerCase().includes(q)) ||
+        (project.awards && project.awards.toLowerCase().includes(q));
 
       // 2. Category Typology
-      if (selectedCategory !== 'ALL') {
-        const pCat = (project.category || '').toUpperCase().trim();
-        if (pCat !== selectedCategory.toUpperCase().trim()) return false;
-      }
+      const matchesCategory =
+        selectedCategory === 'ALL' ||
+        (project.category && project.category.toUpperCase().trim() === selectedCategory.toUpperCase().trim());
 
       // 3. Status
-      if (selectedStatus !== 'ALL') {
-        const pStatus = (project.status || '').toUpperCase().trim();
-        if (pStatus !== selectedStatus.toUpperCase().trim()) return false;
-      }
+      const matchesStatus =
+        selectedStatus === 'ALL' ||
+        (project.status && project.status.toUpperCase().trim() === selectedStatus.toUpperCase().trim());
 
-      // 4. Location
-      if (selectedLocation !== 'ALL') {
-        const pLoc = (project.location || '').trim();
-        if (pLoc.toLowerCase() !== selectedLocation.toLowerCase().trim()) return false;
-      }
+      // 4. Substring Location Match
+      const pLoc = (project.location || '').toLowerCase().trim();
+      const sLoc = selectedLocation.toLowerCase().trim();
+      const matchesLocation =
+        selectedLocation === 'ALL' ||
+        pLoc === sLoc ||
+        pLoc.includes(sLoc) ||
+        sLoc.includes(pLoc);
 
       // 5. Video / Audio toggles
-      if (onlyVideo && !project.featuredVideo) return false;
-      if (onlyAudio && !project.audioNarrative) return false;
+      const matchesVideo = !onlyVideo || Boolean(project.featuredVideo);
+      const matchesAudio = !onlyAudio || Boolean(project.audioNarrative);
 
-      return true;
+      return (
+        matchesSearch &&
+        matchesCategory &&
+        matchesStatus &&
+        matchesLocation &&
+        matchesVideo &&
+        matchesAudio
+      );
     });
   }, [projects, searchQuery, selectedCategory, selectedStatus, selectedLocation, onlyVideo, onlyAudio]);
 
@@ -203,10 +176,10 @@ export default function ProjectsPage() {
           <Layers className="w-4 h-4" /> MENEN Engineering Masterworks
         </span>
         <h1 className="text-3xl sm:text-5xl font-extrabold text-[var(--theme-text-primary)] tracking-tight mt-2">
-          Projects & Engineering Portfolio
+          Projects &amp; Engineering Portfolio
         </h1>
         <p className="mt-3 text-sm text-[var(--theme-text-secondary)] max-w-3xl leading-relaxed">
-          Filter and explore our complete catalog of mixed-use towers, luxury apartments, landmark hotels, real estate masterplans, and national border security infrastructure.
+          Filter and explore our complete catalog of mixed-use towers, luxury apartments, landmark hotels, real estate masterplans, and national border security infrastructure featuring interactive 3D rotational views.
         </p>
       </div>
 
@@ -224,8 +197,9 @@ export default function ProjectsPage() {
             />
             {searchQuery && (
               <button
+                type="button"
                 onClick={() => setSearchQuery('')}
-                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[var(--theme-text-muted)] hover:text-[var(--theme-text-primary)]"
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[var(--theme-text-muted)] hover:text-[var(--theme-text-primary)] cursor-pointer"
                 title="Clear search"
               >
                 <X className="w-4 h-4" />
@@ -240,10 +214,11 @@ export default function ProjectsPage() {
 
             {isFiltered && (
               <button
+                type="button"
                 onClick={resetFilters}
-                className="text-xs font-mono text-rose-400 hover:text-rose-300 underline flex items-center gap-1 transition"
+                className="text-xs font-mono text-rose-400 hover:text-rose-300 underline flex items-center gap-1 transition cursor-pointer"
               >
-                <X className="w-3.5 h-3.5" /> Reset Filters
+                <RotateCcw className="w-3.5 h-3.5" /> Reset Filters
               </button>
             )}
           </div>
@@ -251,15 +226,16 @@ export default function ProjectsPage() {
 
         {/* Typology Pills */}
         <div>
-          <label className="block text-[11px] font-mono uppercase tracking-wider text-[var(--theme-text-muted)] mb-2 flex items-center gap-1.5">
+          <label className="block text-[11px] font-mono uppercase tracking-wider text-[var(--theme-text-muted)] mb-2 flex items-center gap-1.5 font-semibold">
             <Layers className="w-3.5 h-3.5 text-[var(--theme-accent)]" /> Typology Classification
           </label>
           <div className="flex flex-wrap gap-2">
             {CATEGORIES.map((cat) => (
               <button
                 key={cat.value}
+                type="button"
                 onClick={() => setSelectedCategory(cat.value)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-mono transition duration-200 ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-mono transition duration-200 cursor-pointer ${
                   selectedCategory === cat.value
                     ? 'bg-[var(--theme-accent)] text-black font-bold shadow-md'
                     : 'bg-[var(--theme-surface)] text-[var(--theme-text-secondary)] border border-[var(--theme-border)] hover:border-[var(--theme-accent)]'
@@ -280,7 +256,7 @@ export default function ProjectsPage() {
             <select
               value={selectedStatus}
               onChange={(e) => setSelectedStatus(e.target.value)}
-              className="w-full bg-[var(--theme-surface)] border border-[var(--theme-border)] rounded-lg px-3 py-2 text-xs text-[var(--theme-text-primary)] focus:outline-none focus:border-[var(--theme-accent)] font-mono"
+              className="w-full bg-[var(--theme-surface)] border border-[var(--theme-border)] rounded-lg px-3 py-2 text-xs text-[var(--theme-text-primary)] focus:outline-none focus:border-[var(--theme-accent)] font-mono cursor-pointer"
             >
               {STATUSES.map((st) => (
                 <option key={st.value} value={st.value}>
@@ -297,7 +273,7 @@ export default function ProjectsPage() {
             <select
               value={selectedLocation}
               onChange={(e) => setSelectedLocation(e.target.value)}
-              className="w-full bg-[var(--theme-surface)] border border-[var(--theme-border)] rounded-lg px-3 py-2 text-xs text-[var(--theme-text-primary)] focus:outline-none focus:border-[var(--theme-accent)] font-mono"
+              className="w-full bg-[var(--theme-surface)] border border-[var(--theme-border)] rounded-lg px-3 py-2 text-xs text-[var(--theme-text-primary)] focus:outline-none focus:border-[var(--theme-accent)] font-mono cursor-pointer"
             >
               <option value="ALL">All Regions / National</option>
               {uniqueLocations
@@ -312,10 +288,11 @@ export default function ProjectsPage() {
 
           <div className="pt-4 sm:pt-0">
             <button
+              type="button"
               onClick={() => setOnlyVideo(!onlyVideo)}
-              className={`w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg border text-xs font-mono transition ${
+              className={`w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg border text-xs font-mono transition cursor-pointer ${
                 onlyVideo
-                  ? 'bg-amber-500/20 border-amber-500 text-amber-400 font-semibold'
+                  ? 'bg-amber-500/20 border-amber-500 text-amber-400 font-semibold shadow-sm'
                   : 'bg-[var(--theme-surface)] border-[var(--theme-border)] text-[var(--theme-text-secondary)] hover:border-[var(--theme-accent)]'
               }`}
             >
@@ -326,10 +303,11 @@ export default function ProjectsPage() {
 
           <div className="pt-4 sm:pt-0">
             <button
+              type="button"
               onClick={() => setOnlyAudio(!onlyAudio)}
-              className={`w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg border text-xs font-mono transition ${
+              className={`w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg border text-xs font-mono transition cursor-pointer ${
                 onlyAudio
-                  ? 'bg-cyan-500/20 border-cyan-500 text-cyan-400 font-semibold'
+                  ? 'bg-cyan-500/20 border-cyan-500 text-cyan-400 font-semibold shadow-sm'
                   : 'bg-[var(--theme-surface)] border-[var(--theme-border)] text-[var(--theme-text-secondary)] hover:border-[var(--theme-accent)]'
               }`}
             >
@@ -340,7 +318,7 @@ export default function ProjectsPage() {
         </div>
       </div>
 
-      {/* Projects Grid */}
+      {/* Projects Grid with 3D Rotator Face */}
       {loading ? (
         <div className="text-center py-20 text-xs font-mono text-[var(--theme-text-muted)] animate-pulse">
           Loading MENEN Engineering Masterworks...
@@ -353,18 +331,16 @@ export default function ProjectsPage() {
                 key={p.id}
                 className="bg-[var(--theme-card)] border border-[var(--theme-border)] rounded-2xl overflow-hidden hover:border-[var(--theme-accent)] transition duration-300 flex flex-col justify-between group shadow-sm"
               >
+                {/* 3D Rotational Visual Face */}
                 <div className="relative aspect-[16/10] bg-[var(--theme-surface)] overflow-hidden">
-                  {p.featuredImage && !p.featuredImage.includes('/images/projects/placeholders/') ? (
-                    <img
-                      src={p.featuredImage}
-                      alt={p.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
-                    />
-                  ) : (
-                    <BlueprintPlaceholder title={p.title} category={p.category} />
-                  )}
+                  <Project3DRotator
+                    title={p.title}
+                    category={p.category}
+                    featuredImage={p.featuredImage}
+                    galleryImages={p.galleryImages}
+                  />
 
-                  <div className="absolute top-3 right-3 flex items-center gap-1.5">
+                  <div className="absolute top-3 right-3 z-30 flex items-center gap-1.5 pointer-events-none">
                     {p.featuredVideo && (
                       <span
                         className="p-1 rounded bg-black/75 backdrop-blur-md text-amber-400 border border-white/10"
@@ -386,11 +362,14 @@ export default function ProjectsPage() {
                     </span>
                   </div>
 
-                  <div className="absolute bottom-3 left-3 bg-black/85 backdrop-blur-md px-2.5 py-1 rounded text-[10px] font-mono uppercase tracking-wider text-white border border-white/15">
-                    {p.status ? p.status.replace(/_/g, ' ') : ''}
-                  </div>
+                  {p.status && (
+                    <div className="absolute bottom-3 left-3 z-30 bg-black/85 backdrop-blur-md px-2.5 py-1 rounded text-[9px] font-mono uppercase tracking-wider text-white border border-white/15 pointer-events-none">
+                      {p.status.replace(/_/g, ' ')}
+                    </div>
+                  )}
                 </div>
 
+                {/* Content Details */}
                 <div className="p-6 flex-1 flex flex-col justify-between">
                   <div>
                     {p.awards && (
@@ -434,8 +413,9 @@ export default function ProjectsPage() {
                 No matching projects found
               </p>
               <button
+                type="button"
                 onClick={resetFilters}
-                className="mt-2 px-4 py-2 rounded-lg bg-[var(--theme-surface)] border border-[var(--theme-border)] text-xs font-mono text-[var(--theme-accent)] hover:border-[var(--theme-accent)] transition"
+                className="mt-2 px-4 py-2 rounded-lg bg-[var(--theme-surface)] border border-[var(--theme-border)] text-xs font-mono text-[var(--theme-accent)] hover:border-[var(--theme-accent)] transition cursor-pointer"
               >
                 Reset All Filters
               </button>

@@ -26,7 +26,8 @@ import {
   Mail, 
   GraduationCap, 
   Briefcase, 
-  FileCheck2 
+  FileCheck2,
+  Layers
 } from 'lucide-react';
 
 export default function MasterAdminDashboard() {
@@ -48,10 +49,11 @@ export default function MasterAdminDashboard() {
   const [isNewProjectModal, setIsNewProjectModal] = useState(false);
   const [isNewMemberModal, setIsNewMemberModal] = useState(false);
 
-  // Local Upload State Handlers
-  const [projectImageUrl, setProjectImageUrl] = useState('');
+  // Multi-Image Project States (Optional: 0, 1, 5+ for 3D rotation)
+  const [projectImages, setProjectImages] = useState<string[]>([]);
   const [memberImageUrl, setMemberImageUrl] = useState('');
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<string>('');
 
   // Security Credentials State
   const [securityEmail, setSecurityEmail] = useState('');
@@ -71,13 +73,12 @@ export default function MasterAdminDashboard() {
     setTimeout(() => setToast(null), 3000);
   }
 
-  // Load all records with strict cache-busting
   async function loadAllData() {
     setLoading(true);
     try {
       const fetchOpts: RequestInit = {
         cache: 'no-store',
-        headers: { 'Pragma': 'no-cache', 'Cache-Control': 'no-cache' }
+        headers: { Pragma: 'no-cache', 'Cache-Control': 'no-cache' },
       };
 
       const [projRes, teamRes, configRes, cmsRes, inqRes] = await Promise.all([
@@ -111,13 +112,11 @@ export default function MasterAdminDashboard() {
   // Universal Device Upload Handler (Phone / PC to Cloudinary CDN)
   async function uploadFileToServer(file: File): Promise<string | null> {
     if (!file) return null;
-
     if (file.size > 20 * 1024 * 1024) {
-      alert('The selected file exceeds 20MB. Please choose a smaller photo.');
+      alert(`File "${file.name}" exceeds 20MB. Please choose a smaller photo.`);
       return null;
     }
 
-    setUploadingImage(true);
     try {
       const formData = new FormData();
       formData.append('file', file);
@@ -128,43 +127,44 @@ export default function MasterAdminDashboard() {
       });
 
       const data = await res.json();
-
       if (!res.ok) {
-        const errorMsg = data.error || 'Server rejected file upload.';
-        console.error('Upload API rejection:', errorMsg);
-        alert(`Upload error: ${errorMsg}`);
+        alert(`Upload error: ${data.error || 'Server rejected file upload.'}`);
         return null;
       }
 
-      const cdnUrl = data.url || data.secure_url;
-      if (!cdnUrl) {
-        alert('Server succeeded but did not return a valid CDN link.');
-        return null;
-      }
-
-      triggerToast('Photo successfully stored on Cloud CDN!');
-      return cdnUrl;
+      return data.url || data.secure_url || null;
     } catch (err: any) {
-      console.error('Upload connection error:', err);
-      alert('Network failure connecting to media server. Check connection.');
+      alert('Network error connecting to media server.');
       return null;
-    } finally {
-      setUploadingImage(false);
     }
   }
 
+  // Batch Image Upload Handler for Project Imagery & 3D Rotation
+  async function handleBatchProjectUpload(files: FileList | null) {
+    if (!files || files.length === 0) return;
+
+    setUploadingImage(true);
+    const newUrls: string[] = [];
+
+    for (let i = 0; i < files.length; i++) {
+      setUploadProgress(`Uploading ${i + 1} of ${files.length}...`);
+      const url = await uploadFileToServer(files[i]);
+      if (url) newUrls.push(url);
+    }
+
+    setProjectImages((prev) => [...prev, ...newUrls]);
+    setUploadingImage(false);
+    setUploadProgress('');
+    triggerToast(`Added ${newUrls.length} images to project gallery!`);
+  }
+
   // -------------------------------------------------------------
-  // PROJECT ACTIONS
+  // PROJECT ACTIONS (5+ images optional; activates 3D when 2+ available)
   // -------------------------------------------------------------
   async function handleSaveProject(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const form = new FormData(e.currentTarget);
     const isEditing = Boolean(editingProject?.id);
-
-    let finalFeaturedImage = projectImageUrl.trim() || (form.get('featuredImage') as string)?.trim() || null;
-    if (finalFeaturedImage && finalFeaturedImage.startsWith('/uploads/')) {
-      finalFeaturedImage = null;
-    }
 
     const payload = {
       id: editingProject?.id,
@@ -175,7 +175,8 @@ export default function MasterAdminDashboard() {
       location: form.get('location'),
       scopeOfWork: form.get('scopeOfWork'),
       awards: form.get('awards'),
-      featuredImage: finalFeaturedImage,
+      featuredImage: projectImages[0] || null, // Primary thumbnail
+      galleryImages: projectImages, // Array of photos (0, 1, or 5+ for 3D)
       featuredVideo: form.get('featuredVideo') || null,
       audioNarrative: form.get('audioNarrative') || null,
       isFeatured: form.get('isFeatured') === 'on',
@@ -199,17 +200,16 @@ export default function MasterAdminDashboard() {
           }
         });
 
-        triggerToast(isEditing ? 'Project details updated!' : 'New project published!');
+        triggerToast(isEditing ? 'Project details updated!' : 'Project published successfully!');
         setEditingProject(null);
         setIsNewProjectModal(false);
-        setProjectImageUrl('');
+        setProjectImages([]);
         loadAllData();
       } else {
         const err = await res.json();
         alert(`Failed to save project: ${err.error || 'Server error'}`);
       }
     } catch (error) {
-      console.error('Project save error:', error);
       alert('Network error while saving project.');
     }
   }
@@ -282,7 +282,6 @@ export default function MasterAdminDashboard() {
         alert(`Failed to save specialist: ${err.error || 'Server error'}`);
       }
     } catch (error) {
-      console.error('Team save error:', error);
       alert('Network error while saving specialist profile.');
     }
   }
@@ -330,7 +329,6 @@ export default function MasterAdminDashboard() {
         loadAllData();
       }
     } catch (e) {
-      console.error('Config save error:', e);
       alert('Failed to save configuration settings.');
     }
   }
@@ -411,7 +409,6 @@ export default function MasterAdminDashboard() {
         alert(err.error || 'Failed to dispatch decision.');
       }
     } catch (e) {
-      console.error('Decision dispatch error:', e);
       alert('Network failure sending decision email.');
     }
   }
@@ -436,7 +433,7 @@ export default function MasterAdminDashboard() {
             Master Dynamic Administration Engine
           </h1>
           <p className="text-xs text-[var(--theme-text-muted)] mt-1 font-mono">
-            Direct Database Synced &bull; Cloudinary Media &amp; Email Dispatch Active
+            Direct Database Synced &bull; Cloud CDN &amp; Multi-Image 3D Engine Active
           </p>
         </div>
 
@@ -459,7 +456,7 @@ export default function MasterAdminDashboard() {
       {/* Navigation Tabs */}
       <div className="flex flex-wrap gap-2 border-b border-[var(--theme-border)] pb-3">
         {[
-          { id: 'projects', label: `Projects & Media (${projects.length})`, icon: Building2 },
+          { id: 'projects', label: `Projects & 3D Media (${projects.length})`, icon: Building2 },
           { id: 'team', label: `Team & Profiles (${teamMembers.length})`, icon: Users },
           { id: 'config', label: 'Office & Notification Settings', icon: Settings },
           { id: 'cms', label: 'Live Text CMS', icon: FileText },
@@ -484,7 +481,7 @@ export default function MasterAdminDashboard() {
       </div>
 
       {/* ------------------------------------------------------------- */}
-      {/* TAB 1: PROJECTS & PORTFOLIO CRUD */}
+      {/* TAB 1: PROJECTS & 3D GALLERY CRUD */}
       {/* ------------------------------------------------------------- */}
       {activeTab === 'projects' && (
         <div className="space-y-6">
@@ -494,13 +491,13 @@ export default function MasterAdminDashboard() {
                 Landmark Projects Directory ({projects.length})
               </h3>
               <p className="text-xs text-[var(--theme-text-muted)] mt-0.5">
-                Add, edit, or delete projects with Cloudinary CDN file uploads, video walkthroughs, and audio narratives.
+                Every project supports 3D rotational viewing. Add single photos or pick 5+ images for full 3D rotation.
               </p>
             </div>
             <button
               onClick={() => {
                 setEditingProject(null);
-                setProjectImageUrl('');
+                setProjectImages([]);
                 setIsNewProjectModal(true);
               }}
               className="px-4 py-2 rounded-lg bg-[var(--theme-accent)] text-black font-mono font-bold text-xs uppercase flex items-center gap-1.5 hover:opacity-90 transition cursor-pointer"
@@ -512,6 +509,8 @@ export default function MasterAdminDashboard() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {projects.map((p) => {
               const displayImage = p.featuredImage && !p.featuredImage.startsWith('/uploads/') ? p.featuredImage : null;
+              const imgCount = p.galleryImages?.length || (displayImage ? 1 : 0);
+
               return (
                 <div
                   key={p.id}
@@ -527,9 +526,14 @@ export default function MasterAdminDashboard() {
                       </span>
                     </div>
 
-                    <div className="mt-3 aspect-video rounded-lg overflow-hidden bg-[var(--theme-surface)] border border-[var(--theme-border)] flex items-center justify-center">
+                    <div className="mt-3 aspect-video rounded-lg overflow-hidden bg-[var(--theme-surface)] border border-[var(--theme-border)] flex items-center justify-center relative">
                       {displayImage ? (
-                        <img src={displayImage} alt={p.title} className="w-full h-full object-cover" />
+                        <>
+                          <img src={displayImage} alt={p.title} className="w-full h-full object-cover" />
+                          <div className="absolute bottom-2 left-2 px-2 py-0.5 rounded text-[10px] font-mono bg-black/75 text-amber-300 font-bold border border-white/10 flex items-center gap-1">
+                            <Layers className="w-3 h-3" /> {imgCount} {imgCount >= 2 ? '3D Images' : 'Image'}
+                          </div>
+                        </>
                       ) : (
                         <div className="flex flex-col items-center justify-center text-[var(--theme-text-muted)] p-4 text-center">
                           <Building2 className="w-8 h-8 opacity-40 mb-1" />
@@ -547,24 +551,6 @@ export default function MasterAdminDashboard() {
                     <p className="text-xs text-[var(--theme-text-muted)] mt-2 line-clamp-2 leading-relaxed">
                       {p.scopeOfWork}
                     </p>
-
-                    <div className="mt-3 flex items-center gap-3 text-xs font-mono text-[var(--theme-text-muted)]">
-                      {displayImage && (
-                        <span className="flex items-center gap-1 text-emerald-400" title="Image Configured">
-                          <ImageIcon className="w-3.5 h-3.5" /> CDN Img
-                        </span>
-                      )}
-                      {p.featuredVideo && (
-                        <span className="flex items-center gap-1 text-amber-400" title="Video Configured">
-                          <Video className="w-3.5 h-3.5" /> Video
-                        </span>
-                      )}
-                      {p.audioNarrative && (
-                        <span className="flex items-center gap-1 text-cyan-400" title="Audio Configured">
-                          <Volume2 className="w-3.5 h-3.5" /> Audio
-                        </span>
-                      )}
-                    </div>
                   </div>
 
                   <div className="pt-3 border-t border-[var(--theme-border)] flex items-center justify-between">
@@ -572,7 +558,10 @@ export default function MasterAdminDashboard() {
                       <button
                         onClick={() => {
                           setEditingProject(p);
-                          setProjectImageUrl(displayImage || '');
+                          const existingList = Array.isArray(p.galleryImages) && p.galleryImages.length > 0
+                            ? p.galleryImages
+                            : displayImage ? [displayImage] : [];
+                          setProjectImages(existingList);
                           setIsNewProjectModal(true);
                         }}
                         className="px-2.5 py-1.5 rounded bg-[var(--theme-surface)] text-[var(--theme-text-primary)] hover:text-[var(--theme-accent)] border border-[var(--theme-border)] text-xs font-mono flex items-center gap-1 cursor-pointer"
@@ -601,23 +590,27 @@ export default function MasterAdminDashboard() {
             })}
           </div>
 
-          {/* PROJECT CREATE / EDIT MODAL */}
+          {/* PROJECT CREATE / EDIT MODAL (OPTIONAL 3D GALLERY) */}
           {isNewProjectModal && (
             <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
               <div className="w-full max-w-2xl bg-[var(--theme-card)] border border-[var(--theme-border)] rounded-2xl p-5 sm:p-8 space-y-6 shadow-2xl my-auto max-h-[92vh] overflow-y-auto">
                 <div className="flex justify-between items-center border-b border-[var(--theme-border)] pb-4 sticky top-0 bg-[var(--theme-card)] z-10">
-                  <h3 className="text-base sm:text-lg font-bold text-[var(--theme-text-primary)]">
-                    {editingProject ? 'Edit Project Details' : 'Add New Engineering Project'}
-                  </h3>
+                  <div>
+                    <h3 className="text-base sm:text-lg font-bold text-[var(--theme-text-primary)]">
+                      {editingProject ? 'Edit Project Details' : 'Add New Project'}
+                    </h3>
+                    <p className="text-[11px] font-mono text-[var(--theme-text-muted)]">
+                      Images attached: {projectImages.length} {projectImages.length >= 2 ? '(3D rotation enabled)' : ''}
+                    </p>
+                  </div>
                   <button
                     type="button"
                     onClick={() => {
                       setEditingProject(null);
                       setIsNewProjectModal(false);
-                      setProjectImageUrl('');
+                      setProjectImages([]);
                     }}
                     className="p-2 rounded-xl bg-[var(--theme-surface)] border border-[var(--theme-border)] text-[var(--theme-text-muted)] hover:text-white hover:border-[var(--theme-accent)] transition cursor-pointer"
-                    aria-label="Close Project Modal"
                   >
                     <X className="w-5 h-5" />
                   </button>
@@ -717,57 +710,71 @@ export default function MasterAdminDashboard() {
                     />
                   </div>
 
-                  {/* Device Direct File Upload */}
+                  {/* 3D MULTI-IMAGE GALLERY (COMPLETELY OPTIONAL) */}
                   <div className="p-4 rounded-xl bg-[var(--theme-surface)] border border-[var(--theme-border)] space-y-3">
-                    <label className="block text-[11px] font-mono uppercase text-[var(--theme-text-primary)] font-bold flex items-center gap-1.5">
-                      <ImageIcon className="w-4 h-4 text-[var(--theme-accent)]" /> Project Image (Cloudinary CDN Upload)
-                    </label>
+                    <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-1">
+                      <label className="text-xs font-mono uppercase text-[var(--theme-text-primary)] font-bold flex items-center gap-1.5">
+                        <Layers className="w-4 h-4 text-[var(--theme-accent)]" /> Project Imagery &amp; 3D Rotation (Optional)
+                      </label>
+                      <span className="text-[11px] font-mono">
+                        {projectImages.length >= 2 ? (
+                          <span className="text-emerald-400 font-bold">
+                            ✓ {projectImages.length} images added (3D rotation active)
+                          </span>
+                        ) : projectImages.length === 1 ? (
+                          <span className="text-[var(--theme-text-muted)]">
+                            1 image added (Standard view)
+                          </span>
+                        ) : (
+                          <span className="text-[var(--theme-text-muted)]">
+                            0 images (CAD placeholder used)
+                          </span>
+                        )}
+                      </span>
+                    </div>
 
-                    <div className="flex flex-col sm:flex-row items-center gap-3">
-                      <label className="w-full sm:w-auto px-4 py-2.5 rounded-lg bg-[var(--theme-card)] border border-[var(--theme-accent)]/60 text-xs font-mono text-[var(--theme-accent)] hover:bg-[var(--theme-accent)] hover:text-black transition cursor-pointer flex items-center justify-center gap-2 shrink-0">
+                    {/* Multi-file input */}
+                    <div className="flex items-center gap-3">
+                      <label className="w-full py-3 rounded-xl bg-[var(--theme-card)] border-2 border-dashed border-[var(--theme-accent)]/60 text-xs font-mono text-[var(--theme-accent)] hover:bg-[var(--theme-accent)] hover:text-black transition cursor-pointer flex items-center justify-center gap-2">
                         {uploadingImage ? (
                           <>
-                            <Loader2 className="w-4 h-4 animate-spin" /> Uploading to CDN...
+                            <Loader2 className="w-4 h-4 animate-spin" /> {uploadProgress || 'Uploading to Cloudinary...'}
                           </>
                         ) : (
                           <>
-                            <Upload className="w-4 h-4" /> Pick from Phone / Computer
+                            <Upload className="w-4 h-4" /> Pick Images from Phone / Computer (Optional)
                           </>
                         )}
                         <input
                           type="file"
                           accept="image/*"
+                          multiple
                           className="hidden"
                           disabled={uploadingImage}
-                          onChange={async (e) => {
-                            const file = e.target.files?.[0];
-                            if (file) {
-                              const uploadedUrl = await uploadFileToServer(file);
-                              if (uploadedUrl) setProjectImageUrl(uploadedUrl);
-                            }
-                          }}
+                          onChange={(e) => handleBatchProjectUpload(e.target.files)}
                         />
                       </label>
-
-                      <span className="text-xs font-mono text-[var(--theme-text-muted)]">OR</span>
-
-                      <input
-                        name="featuredImage"
-                        value={projectImageUrl}
-                        onChange={(e) => setProjectImageUrl(e.target.value)}
-                        placeholder="https://res.cloudinary.com/..."
-                        className="flex-1 w-full bg-[var(--theme-card)] border border-[var(--theme-border)] rounded-lg px-3 py-2 text-xs text-[var(--theme-text-primary)] focus:outline-none focus:border-[var(--theme-accent)] font-mono"
-                      />
                     </div>
 
-                    {projectImageUrl && !projectImageUrl.startsWith('/uploads/') && (
-                      <div className="flex items-center gap-3 pt-2">
-                        <div className="w-16 h-12 rounded border border-[var(--theme-border)] overflow-hidden bg-black/40 shrink-0">
-                          <img src={projectImageUrl} alt="Preview" className="w-full h-full object-cover" />
-                        </div>
-                        <span className="text-[11px] font-mono text-emerald-400 truncate max-w-sm">
-                          Active CDN: {projectImageUrl}
-                        </span>
+                    {/* Image Thumbnails & Remove Controls */}
+                    {projectImages.length > 0 && (
+                      <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 pt-2">
+                        {projectImages.map((url, idx) => (
+                          <div key={idx} className="relative aspect-video rounded-lg overflow-hidden border border-[var(--theme-border)] group bg-black/50">
+                            <img src={url} alt={`Angle ${idx + 1}`} className="w-full h-full object-cover" />
+                            <div className="absolute top-1 left-1 bg-black/70 px-1.5 rounded text-[9px] font-mono text-white">
+                              #{idx + 1}
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setProjectImages((prev) => prev.filter((_, i) => i !== idx))}
+                              className="absolute top-1 right-1 p-1 rounded bg-rose-500 text-white opacity-80 hover:opacity-100 transition cursor-pointer"
+                              title="Delete photo"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </div>
+                        ))}
                       </div>
                     )}
                   </div>
@@ -791,7 +798,7 @@ export default function MasterAdminDashboard() {
                       <input
                         name="audioNarrative"
                         defaultValue={editingProject?.audioNarrative || ''}
-                        placeholder="Audio / Podcast link"
+                        placeholder="Audio link"
                         className="w-full bg-[var(--theme-surface)] border border-[var(--theme-border)] rounded-lg px-3 py-2 text-xs text-[var(--theme-text-primary)] focus:outline-none focus:border-[var(--theme-accent)]"
                       />
                     </div>
@@ -822,24 +829,23 @@ export default function MasterAdminDashboard() {
                     </label>
                   </div>
 
-                  {/* Dual Action Buttons (Save + Mobile Exit) */}
                   <div className="pt-3 flex flex-col sm:flex-row gap-2">
                     <button
                       type="submit"
                       className="flex-1 py-3 rounded-lg bg-[var(--theme-accent)] text-black font-bold font-mono text-xs uppercase tracking-wider hover:opacity-90 transition cursor-pointer"
                     >
-                      Save Project to Database
+                      Save Project ({projectImages.length} Image{projectImages.length === 1 ? '' : 's'})
                     </button>
                     <button
                       type="button"
                       onClick={() => {
                         setEditingProject(null);
                         setIsNewProjectModal(false);
-                        setProjectImageUrl('');
+                        setProjectImages([]);
                       }}
                       className="py-3 px-5 rounded-lg bg-[var(--theme-surface)] text-[var(--theme-text-secondary)] hover:text-white border border-[var(--theme-border)] font-mono text-xs uppercase tracking-wider transition cursor-pointer text-center"
                     >
-                      Cancel &amp; Discard
+                      Cancel
                     </button>
                   </div>
                 </form>
@@ -946,7 +952,6 @@ export default function MasterAdminDashboard() {
                       setMemberImageUrl('');
                     }}
                     className="p-2 rounded-xl bg-[var(--theme-surface)] border border-[var(--theme-border)] text-[var(--theme-text-muted)] hover:text-white hover:border-[var(--theme-accent)] transition cursor-pointer"
-                    aria-label="Close Team Modal"
                   >
                     <X className="w-5 h-5" />
                   </button>
@@ -1002,22 +1007,21 @@ export default function MasterAdminDashboard() {
                       name="bio"
                       defaultValue={editingMember?.bio || ''}
                       rows={3}
-                      placeholder="Full summary of work on landmark conservation, high rises, and international practice..."
+                      placeholder="Full summary of engineering experience..."
                       className="w-full bg-[var(--theme-surface)] border border-[var(--theme-border)] rounded-lg px-3 py-2 text-xs text-[var(--theme-text-primary)] focus:outline-none focus:border-[var(--theme-accent)]"
                     />
                   </div>
 
-                  {/* Direct Mobile/PC Photo Upload for Team Member */}
                   <div className="p-4 rounded-xl bg-[var(--theme-surface)] border border-[var(--theme-border)] space-y-3">
                     <label className="block text-[11px] font-mono uppercase text-[var(--theme-text-primary)] font-bold flex items-center gap-1.5">
-                      <ImageIcon className="w-4 h-4 text-[var(--theme-accent)]" /> Profile Photo (Cloudinary CDN Upload)
+                      <ImageIcon className="w-4 h-4 text-[var(--theme-accent)]" /> Profile Photo (Cloud CDN)
                     </label>
 
                     <div className="flex flex-col sm:flex-row items-center gap-3">
                       <label className="w-full sm:w-auto px-4 py-2.5 rounded-lg bg-[var(--theme-card)] border border-[var(--theme-accent)]/60 text-xs font-mono text-[var(--theme-accent)] hover:bg-[var(--theme-accent)] hover:text-black transition cursor-pointer flex items-center justify-center gap-2 shrink-0">
                         {uploadingImage ? (
                           <>
-                            <Loader2 className="w-4 h-4 animate-spin" /> Uploading to CDN...
+                            <Loader2 className="w-4 h-4 animate-spin" /> Uploading...
                           </>
                         ) : (
                           <>
@@ -1038,28 +1042,14 @@ export default function MasterAdminDashboard() {
                           }}
                         />
                       </label>
-
-                      <span className="text-xs font-mono text-[var(--theme-text-muted)]">OR</span>
-
                       <input
                         name="avatarUrl"
                         value={memberImageUrl}
                         onChange={(e) => setMemberImageUrl(e.target.value)}
                         placeholder="https://res.cloudinary.com/..."
-                        className="flex-1 w-full bg-[var(--theme-card)] border border-[var(--theme-border)] rounded-lg px-3 py-2 text-xs text-[var(--theme-text-primary)] focus:outline-none focus:border-[var(--theme-accent)] font-mono"
+                        className="flex-1 w-full bg-[var(--theme-card)] border border-[var(--theme-border)] rounded-lg px-3 py-2 text-xs text-[var(--theme-text-primary)] font-mono"
                       />
                     </div>
-
-                    {memberImageUrl && !memberImageUrl.startsWith('/uploads/') && (
-                      <div className="flex items-center gap-3 pt-2">
-                        <div className="w-12 h-12 rounded-full border border-[var(--theme-border)] overflow-hidden bg-black/40 shrink-0">
-                          <img src={memberImageUrl} alt="Preview" className="w-full h-full object-cover" />
-                        </div>
-                        <span className="text-[11px] font-mono text-emerald-400 truncate max-w-sm">
-                          Active CDN: {memberImageUrl}
-                        </span>
-                      </div>
-                    )}
                   </div>
 
                   <div>
@@ -1070,11 +1060,10 @@ export default function MasterAdminDashboard() {
                       name="linkedinUrl"
                       defaultValue={editingMember?.linkedinUrl || ''}
                       placeholder="https://linkedin.com/in/..."
-                      className="w-full bg-[var(--theme-surface)] border border-[var(--theme-border)] rounded-lg px-3 py-2 text-xs text-[var(--theme-text-primary)] focus:outline-none focus:border-[var(--theme-accent)]"
+                      className="w-full bg-[var(--theme-surface)] border border-[var(--theme-border)] rounded-lg px-3 py-2 text-xs text-[var(--theme-text-primary)]"
                     />
                   </div>
 
-                  {/* Dual Action Buttons (Save + Mobile Exit) */}
                   <div className="pt-3 flex flex-col sm:flex-row gap-2">
                     <button
                       type="submit"
@@ -1091,7 +1080,7 @@ export default function MasterAdminDashboard() {
                       }}
                       className="py-3 px-5 rounded-lg bg-[var(--theme-surface)] text-[var(--theme-text-secondary)] hover:text-white border border-[var(--theme-border)] font-mono text-xs uppercase tracking-wider transition cursor-pointer text-center"
                     >
-                      Cancel &amp; Discard
+                      Cancel
                     </button>
                   </div>
                 </form>
@@ -1102,35 +1091,32 @@ export default function MasterAdminDashboard() {
       )}
 
       {/* ------------------------------------------------------------- */}
-      {/* TAB 3: CONTACT, OFFICE & NOTIFICATION EMAIL CONFIGURATION */}
+      {/* TAB 3: CONTACT & NOTIFICATION EMAIL CONFIG */}
       {/* ------------------------------------------------------------- */}
       {activeTab === 'config' && (
         <div className="bg-[var(--theme-card)] border border-[var(--theme-border)] rounded-2xl p-6 sm:p-8 space-y-6">
           <div>
             <h3 className="text-base font-bold text-[var(--theme-text-primary)]">
-              Corporate Office &amp; Notification Dispatch Engine
+              Corporate Office &amp; Dynamic Email Settings
             </h3>
             <p className="text-xs text-[var(--theme-text-muted)] mt-1 font-mono">
-              The email address entered below is where all inbound project briefs and internship applications are routed.
+              The primary email configured here updates the entire website footer and serves as the recipient for client briefs.
             </p>
           </div>
 
           <form onSubmit={handleSaveConfig} className="space-y-5">
             <div className="p-4 rounded-xl bg-[var(--theme-surface)] border border-[var(--theme-accent)]/50 space-y-2">
               <label className="text-xs font-mono uppercase text-[var(--theme-accent)] font-bold flex items-center gap-1.5">
-                <Mail className="w-4 h-4" /> Admin Notification Recipient Email (Dynamic Inbox Target) *
+                <Mail className="w-4 h-4" /> Company Contact &amp; Notification Recipient Email (Dynamic Footer Sync) *
               </label>
               <input
                 required
                 type="email"
                 name="primaryEmail"
                 defaultValue={siteConfig.primaryEmail || 'habtamuengr@gmail.com'}
-                placeholder="Where should alerts be sent? e.g. director@menenplc.com"
+                placeholder="e.g. habtamuengr@gmail.com"
                 className="w-full bg-[var(--theme-card)] border border-[var(--theme-border)] rounded-lg px-3.5 py-2.5 text-xs text-[var(--theme-text-primary)] focus:outline-none focus:border-[var(--theme-accent)] font-mono"
               />
-              <p className="text-[11px] text-[var(--theme-text-muted)] font-mono">
-                When candidates or clients submit a brief, an automated HTML dispatch will be delivered to this address.
-              </p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1141,7 +1127,7 @@ export default function MasterAdminDashboard() {
                 <input
                   name="companyName"
                   defaultValue={siteConfig.companyName || 'MENEN Engineering PLC'}
-                  className="w-full bg-[var(--theme-surface)] border border-[var(--theme-border)] rounded-lg px-3.5 py-2 text-xs text-[var(--theme-text-primary)] focus:outline-none focus:border-[var(--theme-accent)]"
+                  className="w-full bg-[var(--theme-surface)] border border-[var(--theme-border)] rounded-lg px-3.5 py-2 text-xs text-[var(--theme-text-primary)]"
                 />
               </div>
               <div>
@@ -1151,7 +1137,7 @@ export default function MasterAdminDashboard() {
                 <input
                   name="legalCategory"
                   defaultValue={siteConfig.legalCategory || 'Category One Architectural & Engineering Firm'}
-                  className="w-full bg-[var(--theme-surface)] border border-[var(--theme-border)] rounded-lg px-3.5 py-2 text-xs text-[var(--theme-text-primary)] focus:outline-none focus:border-[var(--theme-accent)]"
+                  className="w-full bg-[var(--theme-surface)] border border-[var(--theme-border)] rounded-lg px-3.5 py-2 text-xs text-[var(--theme-text-primary)]"
                 />
               </div>
             </div>
@@ -1164,7 +1150,7 @@ export default function MasterAdminDashboard() {
                 <input
                   name="primaryPhone"
                   defaultValue={siteConfig.primaryPhone || '+251 920 517 606'}
-                  className="w-full bg-[var(--theme-surface)] border border-[var(--theme-border)] rounded-lg px-3.5 py-2 text-xs text-[var(--theme-text-primary)] focus:outline-none focus:border-[var(--theme-accent)] font-mono"
+                  className="w-full bg-[var(--theme-surface)] border border-[var(--theme-border)] rounded-lg px-3.5 py-2 text-xs text-[var(--theme-text-primary)] font-mono"
                 />
               </div>
               <div>
@@ -1174,20 +1160,20 @@ export default function MasterAdminDashboard() {
                 <input
                   name="secondaryPhone"
                   defaultValue={siteConfig.secondaryPhone || '+251 913 034 623'}
-                  className="w-full bg-[var(--theme-surface)] border border-[var(--theme-border)] rounded-lg px-3.5 py-2 text-xs text-[var(--theme-text-primary)] focus:outline-none focus:border-[var(--theme-accent)] font-mono"
+                  className="w-full bg-[var(--theme-surface)] border border-[var(--theme-border)] rounded-lg px-3.5 py-2 text-xs text-[var(--theme-text-primary)] font-mono"
                 />
               </div>
             </div>
 
             <div>
               <label className="block text-[11px] font-mono uppercase text-[var(--theme-text-muted)] mb-1">
-                Office Physical Address (Shown on Contact Page, Footer &amp; Decision Letters)
+                Office Physical Address
               </label>
               <textarea
                 name="officeAddress"
                 defaultValue={siteConfig.officeAddress || 'Wello Sefer, behind Garad Mall, GS Building, 2nd Floor Office @ Menen Engineering PLC, Addis Ababa, Ethiopia'}
                 rows={2}
-                className="w-full bg-[var(--theme-surface)] border border-[var(--theme-border)] rounded-lg px-3.5 py-2 text-xs text-[var(--theme-text-primary)] focus:outline-none focus:border-[var(--theme-accent)] font-sans"
+                className="w-full bg-[var(--theme-surface)] border border-[var(--theme-border)] rounded-lg px-3.5 py-2 text-xs text-[var(--theme-text-primary)]"
               />
             </div>
 
@@ -1198,7 +1184,7 @@ export default function MasterAdminDashboard() {
               <input
                 name="motto"
                 defaultValue={siteConfig.motto || "It's all about commitment!"}
-                className="w-full bg-[var(--theme-surface)] border border-[var(--theme-border)] rounded-lg px-3.5 py-2 text-xs text-[var(--theme-text-primary)] focus:outline-none focus:border-[var(--theme-accent)]"
+                className="w-full bg-[var(--theme-surface)] border border-[var(--theme-border)] rounded-lg px-3.5 py-2 text-xs text-[var(--theme-text-primary)]"
               />
             </div>
 
@@ -1206,14 +1192,14 @@ export default function MasterAdminDashboard() {
               type="submit"
               className="py-3 px-6 rounded-lg bg-[var(--theme-accent)] text-black font-bold font-mono text-xs uppercase tracking-wider hover:opacity-90 transition flex items-center gap-2 cursor-pointer shadow-md"
             >
-              <Save className="w-4 h-4" /> Save Office Settings &amp; Notification Email
+              <Save className="w-4 h-4" /> Save Office Settings &amp; Footer Email
             </button>
           </form>
         </div>
       )}
 
       {/* ------------------------------------------------------------- */}
-      {/* TAB 4: LIVE DYNAMIC TEXTS CMS */}
+      {/* TAB 4: CMS DYNAMIC TEXTS */}
       {/* ------------------------------------------------------------- */}
       {activeTab === 'cms' && (
         <div className="bg-[var(--theme-card)] border border-[var(--theme-border)] rounded-2xl p-6 sm:p-8 space-y-6">
@@ -1222,7 +1208,7 @@ export default function MasterAdminDashboard() {
               Live Site Content CMS
             </h3>
             <p className="text-xs text-[var(--theme-text-muted)] mt-1 font-mono">
-              Edit taglines, vision, mission statements, and core values. Saved live to database.
+              Edit taglines, vision, mission statements, and core values.
             </p>
           </div>
 
@@ -1238,7 +1224,7 @@ export default function MasterAdminDashboard() {
                     id={`cms_${item.key}`}
                     defaultValue={item.value}
                     rows={2}
-                    className="w-full bg-[var(--theme-card)] border border-[var(--theme-border)] rounded-lg p-2.5 text-xs text-[var(--theme-text-primary)] focus:outline-none focus:border-[var(--theme-accent)] font-sans"
+                    className="w-full bg-[var(--theme-card)] border border-[var(--theme-border)] rounded-lg p-2.5 text-xs text-[var(--theme-text-primary)]"
                   />
                   <button
                     onClick={() => {
@@ -1252,14 +1238,14 @@ export default function MasterAdminDashboard() {
                 </div>
               ))
             ) : (
-              <p className="text-xs text-[var(--theme-text-muted)] font-mono">No CMS items found. Seed the database with `npx prisma db seed`.</p>
+              <p className="text-xs text-[var(--theme-text-muted)] font-mono">No CMS items found.</p>
             )}
           </div>
         </div>
       )}
 
       {/* ------------------------------------------------------------- */}
-      {/* TAB 5: ADMIN SECURITY CREDENTIALS */}
+      {/* TAB 5: SECURITY (ADMIN PASSKEY) */}
       {/* ------------------------------------------------------------- */}
       {activeTab === 'security' && (
         <div className="bg-[var(--theme-card)] border border-[var(--theme-border)] rounded-2xl p-6 sm:p-8 space-y-6 max-w-xl">
@@ -1267,9 +1253,6 @@ export default function MasterAdminDashboard() {
             <h3 className="text-base font-bold text-[var(--theme-text-primary)]">
               Admin Authentication &amp; Passkey
             </h3>
-            <p className="text-xs text-[var(--theme-text-muted)] mt-1 font-mono">
-              Change the login email and password used to access this console.
-            </p>
           </div>
 
           <form onSubmit={handleSaveSecurity} className="space-y-4">
@@ -1283,7 +1266,7 @@ export default function MasterAdminDashboard() {
                 value={securityEmail}
                 onChange={(e) => setSecurityEmail(e.target.value)}
                 placeholder="e.g. habtamuengr@gmail.com"
-                className="w-full bg-[var(--theme-surface)] border border-[var(--theme-border)] rounded-lg px-3.5 py-2.5 text-xs text-[var(--theme-text-primary)] focus:outline-none focus:border-[var(--theme-accent)] font-mono"
+                className="w-full bg-[var(--theme-surface)] border border-[var(--theme-border)] rounded-lg px-3.5 py-2.5 text-xs text-[var(--theme-text-primary)] font-mono"
               />
             </div>
 
@@ -1297,7 +1280,7 @@ export default function MasterAdminDashboard() {
                 value={securityPassword}
                 onChange={(e) => setSecurityPassword(e.target.value)}
                 placeholder="Enter new strong passkey"
-                className="w-full bg-[var(--theme-surface)] border border-[var(--theme-border)] rounded-lg px-3.5 py-2.5 text-xs text-[var(--theme-text-primary)] focus:outline-none focus:border-[var(--theme-accent)] font-mono"
+                className="w-full bg-[var(--theme-surface)] border border-[var(--theme-border)] rounded-lg px-3.5 py-2.5 text-xs text-[var(--theme-text-primary)] font-mono"
               />
             </div>
 
@@ -1312,7 +1295,7 @@ export default function MasterAdminDashboard() {
       )}
 
       {/* ------------------------------------------------------------- */}
-      {/* TAB 6: INCOMING CLIENT BRIEFS, PDFS & STUDENT APPLICATIONS */}
+      {/* TAB 6: INBOUND BRIEFS & DECISION DISPATCH */}
       {/* ------------------------------------------------------------- */}
       {activeTab === 'inquiries' && (
         <div className="bg-[var(--theme-card)] border border-[var(--theme-border)] rounded-2xl p-6 sm:p-8 space-y-6">
@@ -1320,31 +1303,21 @@ export default function MasterAdminDashboard() {
             <h3 className="text-base font-bold text-[var(--theme-text-primary)]">
               Inbound Client Briefs &amp; Student Applications ({inquiries.length})
             </h3>
-            <p className="text-xs text-[var(--theme-text-muted)] mt-1 font-mono">
-              Review submissions. Approving or rejecting automatically dispatches an official decision letter to the applicant&apos;s email address.
-            </p>
           </div>
 
           <div className="space-y-6">
             {inquiries.length > 0 ? (
               inquiries.map((inq) => {
                 const isInternship = inq.projectType?.includes('INTERNSHIP') || inq.scope?.includes('[STUDENT INTERNSHIP');
-                
-                // Parse attached Cloudinary PDF link from scope
                 let pdfAttachmentUrl: string | null = null;
                 let pdfAttachmentName = 'Attached_Document.pdf';
 
                 if (inq.scope) {
                   const urlMatch = inq.scope.match(/URL:\s*(https:\/\/res\.cloudinary\.com\/[^\s\n\r]+)/i) ||
                                    inq.scope.match(/(https:\/\/res\.cloudinary\.com\/[^\s\n\r]+\.pdf)/i);
-                  if (urlMatch) {
-                    pdfAttachmentUrl = urlMatch[1];
-                  }
-
+                  if (urlMatch) pdfAttachmentUrl = urlMatch[1];
                   const nameMatch = inq.scope.match(/File:\s*([^\n\r]+)/i);
-                  if (nameMatch) {
-                    pdfAttachmentName = nameMatch[1].trim();
-                  }
+                  if (nameMatch) pdfAttachmentName = nameMatch[1].trim();
                 }
 
                 return (
@@ -1357,15 +1330,7 @@ export default function MasterAdminDashboard() {
                               ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30' 
                               : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
                           }`}>
-                            {isInternship ? (
-                              <span className="flex items-center gap-1">
-                                <GraduationCap className="w-3 h-3" /> Internship Candidate
-                              </span>
-                            ) : (
-                              <span className="flex items-center gap-1">
-                                <Briefcase className="w-3 h-3" /> Project Brief
-                              </span>
-                            )}
+                            {isInternship ? 'Internship Candidate' : 'Project Brief'}
                           </span>
                           <h4 className="text-base font-bold text-[var(--theme-text-primary)]">
                             {inq.fullName} {inq.organization ? `(${inq.organization})` : ''}
@@ -1376,62 +1341,31 @@ export default function MasterAdminDashboard() {
                         </p>
                       </div>
 
-                      <div className="flex items-center gap-2">
-                        <span className={`text-xs font-mono px-3 py-1 rounded-full font-bold uppercase ${
-                          inq.status === 'APPROVED' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40' :
-                          inq.status === 'REJECTED' ? 'bg-rose-500/20 text-rose-400 border border-rose-500/40' :
-                          'bg-amber-500/20 text-amber-400 border border-amber-500/40'
-                        }`}>
-                          {inq.status || 'PENDING'}
-                        </span>
-                      </div>
+                      <span className={`text-xs font-mono px-3 py-1 rounded-full font-bold uppercase ${
+                        inq.status === 'APPROVED' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40' :
+                        inq.status === 'REJECTED' ? 'bg-rose-500/20 text-rose-400 border border-rose-500/40' :
+                        'bg-amber-500/20 text-amber-400 border border-amber-500/40'
+                      }`}>
+                        {inq.status || 'PENDING'}
+                      </span>
                     </div>
 
-                    {/* Scope / Dossier Content */}
-                    <div className="text-xs text-[var(--theme-text-secondary)] bg-[var(--theme-card)] p-4 rounded-xl border border-[var(--theme-border)] leading-relaxed whitespace-pre-line font-sans">
+                    <div className="text-xs text-[var(--theme-text-secondary)] bg-[var(--theme-card)] p-4 rounded-xl border border-[var(--theme-border)] leading-relaxed whitespace-pre-line">
                       {inq.scope}
                     </div>
 
-                    {/* Direct Local PDF Download Button (Using Server Proxy Route) */}
                     {pdfAttachmentUrl && (
                       <div className="pt-1 flex flex-wrap items-center gap-2">
                         <a
                           href={`/api/download?url=${encodeURIComponent(pdfAttachmentUrl)}&name=${encodeURIComponent(pdfAttachmentName)}`}
-                          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[var(--theme-accent)] text-black text-xs font-mono font-bold uppercase tracking-wider hover:opacity-90 transition shadow-md cursor-pointer"
+                          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[var(--theme-accent)] text-black text-xs font-mono font-bold uppercase tracking-wider hover:opacity-90 transition shadow-md"
                         >
                           <FileCheck2 className="w-4 h-4 shrink-0" />
-                          <span>📥 Download PDF to Device ({pdfAttachmentName})</span>
-                        </a>
-
-                        <a
-                          href={pdfAttachmentUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[var(--theme-surface)] text-[var(--theme-text-secondary)] border border-[var(--theme-border)] text-[11px] font-mono hover:text-white transition"
-                        >
-                          <ExternalLink className="w-3.5 h-3.5" />
-                          <span>Preview in Browser</span>
+                          <span>📥 Download PDF to Device</span>
                         </a>
                       </div>
                     )}
 
-                    {/* Reference Media Walkthrough Links */}
-                    {(inq.referenceVideo || inq.referenceAudio) && (
-                      <div className="flex flex-wrap gap-4 text-xs font-mono pt-1">
-                        {inq.referenceVideo && (
-                          <a href={inq.referenceVideo} target="_blank" rel="noopener noreferrer" className="text-amber-400 flex items-center gap-1 hover:underline">
-                            <Video className="w-3.5 h-3.5" /> Video / Portfolio URL
-                          </a>
-                        )}
-                        {inq.referenceAudio && (
-                          <a href={inq.referenceAudio} target="_blank" rel="noopener noreferrer" className="text-cyan-400 flex items-center gap-1 hover:underline">
-                            <Volume2 className="w-3.5 h-3.5" /> Audio Note Link
-                          </a>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Decision Action Toolbar */}
                     <div className="pt-3 border-t border-[var(--theme-border)] flex flex-wrap items-center justify-between gap-3">
                       <div className="text-[11px] font-mono text-[var(--theme-text-muted)]">
                         Target Applicant: <strong className="text-[var(--theme-text-primary)]">{inq.email}</strong>
@@ -1440,14 +1374,13 @@ export default function MasterAdminDashboard() {
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => handleInquiryDecision(inq.id, inq.email, 'APPROVED')}
-                          className="px-3 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 border border-emerald-500/40 text-xs font-mono font-bold flex items-center gap-1 cursor-pointer transition"
+                          className="px-3 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 border border-emerald-500/40 text-xs font-mono font-bold cursor-pointer transition"
                         >
                           ✓ Approve &amp; Send Decision Email
                         </button>
-
                         <button
                           onClick={() => handleInquiryDecision(inq.id, inq.email, 'REJECTED')}
-                          className="px-3 py-1.5 rounded-lg bg-rose-500/20 text-rose-400 hover:bg-rose-500/30 border border-rose-500/40 text-xs font-mono font-bold flex items-center gap-1 cursor-pointer transition"
+                          className="px-3 py-1.5 rounded-lg bg-rose-500/20 text-rose-400 hover:bg-rose-500/30 border border-rose-500/40 text-xs font-mono font-bold cursor-pointer transition"
                         >
                           ✕ Reject &amp; Send Decision Email
                         </button>

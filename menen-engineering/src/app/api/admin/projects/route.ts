@@ -19,10 +19,20 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const data = await req.json();
-    const slug = (data.title || 'project')
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/(^-|-$)+/g, '') + '-' + Date.now().toString().slice(-4);
+    const slug =
+      (data.title || 'project')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)+/g, '') +
+      '-' +
+      Date.now().toString().slice(-4);
+
+    // Normalize gallery images array
+    const galleryImages: string[] = Array.isArray(data.galleryImages)
+      ? data.galleryImages
+      : data.featuredImage
+      ? [data.featuredImage]
+      : [];
 
     const created = await prisma.project.create({
       data: {
@@ -36,7 +46,8 @@ export async function POST(req: Request) {
         scopeOfWork: data.scopeOfWork,
         awards: data.awards || null,
         description: data.description || null,
-        featuredImage: data.featuredImage || null,
+        featuredImage: data.featuredImage || galleryImages[0] || null,
+        galleryImages: galleryImages, // Persist 3D gallery images array
         featuredVideo: data.featuredVideo || null,
         audioNarrative: data.audioNarrative || null,
         isFeatured: Boolean(data.isFeatured),
@@ -58,6 +69,13 @@ export async function PUT(req: Request) {
       return NextResponse.json({ error: 'Project ID required' }, { status: 400 });
     }
 
+    // Normalize gallery images array
+    const galleryImages: string[] = Array.isArray(data.galleryImages)
+      ? data.galleryImages
+      : data.featuredImage
+      ? [data.featuredImage]
+      : [];
+
     const updated = await prisma.project.update({
       where: { id: data.id },
       data: {
@@ -70,7 +88,8 @@ export async function PUT(req: Request) {
         scopeOfWork: data.scopeOfWork,
         awards: data.awards || null,
         description: data.description || null,
-        featuredImage: data.featuredImage || null,
+        featuredImage: data.featuredImage || galleryImages[0] || null,
+        galleryImages: galleryImages, // Update 3D gallery images array
         featuredVideo: data.featuredVideo || null,
         audioNarrative: data.audioNarrative || null,
         isFeatured: Boolean(data.isFeatured),

@@ -2,48 +2,104 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { Menu, X, Key, Phone, Home } from 'lucide-react';
 import ThemeSwitcher from './ThemeSwitcher';
 
 interface NavbarProps {
-  companyName: string;
-  primaryPhone: string;
+  companyName?: string;
+  primaryPhone?: string;
 }
 
-export default function Navbar({ companyName, primaryPhone }: NavbarProps) {
+// -------------------------------------------------------------
+// DYNAMIC AUTO-SIZING 360° CONTINUOUS ROTATING 3D LOGO
+// -------------------------------------------------------------
+function Dynamic360Logo() {
+  const [isHovered, setIsHovered] = useState(false);
+
+  // Logo file source - replace with your clean file path if renamed
+  const logoSrc = '/images/Screenshot_3-10-2026_95945_.jpeg';
+
+  return (
+    <div
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      className="relative flex items-center justify-center select-none cursor-pointer py-1"
+      style={{ perspective: '1000px' }}
+    >
+      {/* 360 Continuous Orbital Turntable */}
+      <div
+        className={`relative h-11 sm:h-13 lg:h-15 w-auto flex items-center justify-center animate-spin-360 ${
+          isHovered ? 'pause-spin' : ''
+        }`}
+        style={{
+          transformStyle: 'preserve-3d',
+          transition: 'transform 0.4s ease',
+        }}
+      >
+        {/* Soft Ambient Depth Glow behind the logo */}
+        <div
+          className="absolute inset-0 rounded-full bg-[radial-gradient(circle_at_center,rgba(16,185,129,0.25)_0%,rgba(0,102,204,0.2)_45%,transparent_75%)] pointer-events-none"
+          style={{ transform: 'translateZ(-10px)' }}
+        />
+
+        {/* FRONT FACE (0° - 180°) */}
+        <div
+          className="relative h-full w-auto flex items-center justify-center"
+          style={{
+            backfaceVisibility: 'hidden',
+            WebkitBackfaceVisibility: 'hidden',
+            transform: 'rotateY(0deg) translateZ(1px)',
+          }}
+        >
+          <img
+            src={logoSrc}
+            alt="MENEN Engineering PLC Logo Front"
+            className="h-full w-auto max-h-12 sm:max-h-14 lg:max-h-16 object-contain drop-shadow-[0_4px_12px_rgba(0,0,0,0.5)]"
+          />
+        </div>
+
+        {/* BACK FACE (180° - 360°): scaleX(-1) ensures letters read forwards, not mirrored */}
+        <div
+          className="absolute inset-0 h-full w-auto flex items-center justify-center"
+          style={{
+            backfaceVisibility: 'hidden',
+            WebkitBackfaceVisibility: 'hidden',
+            transform: 'rotateY(180deg) translateZ(1px)',
+          }}
+        >
+          <img
+            src={logoSrc}
+            alt="MENEN Engineering PLC Logo Back"
+            className="h-full w-auto max-h-12 sm:max-h-14 lg:max-h-16 object-contain drop-shadow-[0_4px_12px_rgba(0,0,0,0.5)] [transform:scaleX(-1)]"
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// -------------------------------------------------------------
+// MAIN NAVBAR
+// -------------------------------------------------------------
+export default function Navbar({
+  companyName = 'MENEN Engineering PLC',
+  primaryPhone = '+251 920 517 606',
+}: NavbarProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
     <header className="sticky top-0 z-50 backdrop-blur-md bg-[var(--theme-bg)]/95 border-b border-[var(--theme-border)]">
       <div className="max-w-7xl mx-auto px-4 h-20 sm:h-24 flex items-center justify-between gap-4">
         
-        {/* Left Side: Full Visible Logo + Title (clicking always redirects home) */}
-        <Link href="/" className="flex items-center gap-3.5 group shrink-0">
-          <div className="relative w-28 sm:w-36 lg:w-44 h-12 sm:h-14 lg:h-16 rounded-xl overflow-hidden bg-white p-1 border border-[var(--theme-border)] group-hover:border-[var(--theme-accent)] transition shadow-sm flex items-center justify-center">
-            <Image
-              src="/images/Screenshot_3-10-2026_95945_.jpeg"
-              alt="MENEN Engineering Logo"
-              fill
-              unoptimized
-              className="object-contain"
-              priority
-            />
-          </div>
-          <div className="hidden sm:flex flex-col">
-            <span className="font-extrabold text-base sm:text-xl tracking-wider text-[var(--theme-text-primary)]">
-              MENEN <span className="text-[var(--theme-accent)] font-light">ENGINEERING</span>
-            </span>
-            <span className="text-[8px] sm:text-[9px] font-mono text-[var(--theme-text-muted)] tracking-widest uppercase font-semibold">
-              PLC • ARCHITECTS &amp; CONSULTANTS
-            </span>
-          </div>
+        {/* Left Side: 360° Rotational Logo (Dynamic width & height) */}
+        <Link href="/" className="flex items-center group shrink-0">
+          <Dynamic360Logo />
         </Link>
 
         {/* Desktop Navigation Links */}
         <nav className="hidden lg:flex items-center gap-7 text-xs font-semibold uppercase tracking-wider text-[var(--theme-text-secondary)]">
-          <Link 
-            href="/" 
+          <Link
+            href="/"
             className="flex items-center gap-1.5 hover:text-[var(--theme-accent)] transition"
           >
             <Home className="w-3.5 h-3.5" />
@@ -63,7 +119,7 @@ export default function Navbar({ companyName, primaryPhone }: NavbarProps) {
           </Link>
         </nav>
 
-        {/* Right Side Actions: Theme, Key-only Admin, Mobile Hamburger */}
+        {/* Right Side Actions: Theme Switcher, Admin Key, Proposal CTA */}
         <div className="flex items-center gap-2 sm:gap-3">
           <ThemeSwitcher />
 
@@ -77,10 +133,10 @@ export default function Navbar({ companyName, primaryPhone }: NavbarProps) {
             <Key className="w-4 h-4 text-[var(--theme-accent)]" />
           </Link>
 
-          {/* Proposal CTA (Hidden on mobile) */}
+          {/* Proposal CTA */}
           <Link
             href="/submit-project"
-            className="hidden sm:inline-block px-4 py-2.5 rounded-xl text-xs font-bold bg-[var(--theme-accent)] text-black hover:opacity-90 transition font-mono tracking-wider uppercase shadow"
+            className="hidden sm:inline-block px-4 py-2.5 rounded-xl text-xs font-bold bg-[var(--theme-accent)] text-black hover:opacity-90 transition font-mono tracking-wider uppercase shadow cursor-pointer"
           >
             Request Proposal
           </Link>
@@ -139,7 +195,7 @@ export default function Navbar({ companyName, primaryPhone }: NavbarProps) {
             </Link>
           </nav>
 
-          {/* Mobile Quick Action Buttons */}
+          {/* Mobile Action Buttons */}
           <div className="flex flex-col gap-2.5 pt-1">
             <a
               href={`tel:${primaryPhone.replace(/\s+/g, '')}`}

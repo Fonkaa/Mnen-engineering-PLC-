@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
-import BlueprintPlaceholder from '@/components/projects/BlueprintPlaceholder';
+import Project3DRotator from '@/components/projects/Project3DRotator';
 import { 
   Search, 
   Award, 
@@ -38,11 +38,10 @@ export default function InteractiveProjectCatalog({ initialProjects }: Interacti
   const [hasVideo, setHasVideo] = useState(false);
   const [hasAudio, setHasAudio] = useState(false);
 
-  // Extract all distinct locations dynamically (including Jimma and Sekota)
+  // Extract all distinct locations dynamically
   const availableLocations = useMemo(() => {
     const locSet = new Set<string>();
 
-    // Seed key target cities in case records have regional suffixes
     ['Addis Ababa', 'Jimma', 'Sekota', 'Hawassa', 'Bahir Dar', 'Adama', 'Dire Dawa'].forEach((loc) => {
       locSet.add(loc);
     });
@@ -51,7 +50,6 @@ export default function InteractiveProjectCatalog({ initialProjects }: Interacti
       if (p.location && typeof p.location === 'string' && p.location.trim()) {
         const raw = p.location.trim();
         locSet.add(raw);
-        // Also extract city name before comma (e.g. "Jimma, Oromia" -> "Jimma")
         if (raw.includes(',')) {
           locSet.add(raw.split(',')[0].trim());
         }
@@ -61,18 +59,14 @@ export default function InteractiveProjectCatalog({ initialProjects }: Interacti
     return Array.from(locSet).sort();
   }, [initialProjects]);
 
-  // Combined Multi-Criteria Filter Logic matching /projects
+  // Combined Multi-Criteria Filter Logic
   const filteredProjects = useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
 
     return initialProjects.filter((p) => {
-      // 1. Typology Classification
       const matchesCategory = category === 'ALL' || p.category === category;
-
-      // 2. Project Status
       const matchesStatus = status === 'ALL' || p.status === status;
 
-      // 3. Location / Region (Fuzzy Substring Match for Jimma, Sekota, etc.)
       const projectLoc = (p.location || '').toLowerCase();
       const selectedLoc = location.toLowerCase().trim();
       const matchesLocation =
@@ -81,13 +75,9 @@ export default function InteractiveProjectCatalog({ initialProjects }: Interacti
         projectLoc.includes(selectedLoc) ||
         selectedLoc.includes(projectLoc);
 
-      // 4. VR / Video Walkthrough Toggle
       const matchesVideo = !hasVideo || Boolean(p.featuredVideo);
-
-      // 5. Audio Narrative / Brief Toggle
       const matchesAudio = !hasAudio || Boolean(p.audioNarrative);
 
-      // 6. Text Search: Title, Client, Location, Scope, Category, Awards
       const matchesSearch =
         !q ||
         (p.title && p.title.toLowerCase().includes(q)) ||
@@ -206,7 +196,6 @@ export default function InteractiveProjectCatalog({ initialProjects }: Interacti
 
         {/* Secondary Filter Dropdowns: Project Status & Location */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-[var(--theme-border)]">
-          {/* Project Status Dropdown */}
           <div>
             <label className="block text-[11px] font-mono uppercase tracking-wider text-[var(--theme-text-muted)] mb-1.5">
               Project Status
@@ -227,7 +216,6 @@ export default function InteractiveProjectCatalog({ initialProjects }: Interacti
             </select>
           </div>
 
-          {/* Project City / Region Dropdown */}
           <div>
             <label className="block text-[11px] font-mono uppercase tracking-wider text-[var(--theme-text-muted)] mb-1.5">
               Project City / Region
@@ -253,7 +241,6 @@ export default function InteractiveProjectCatalog({ initialProjects }: Interacti
             <SlidersHorizontal className="w-3.5 h-3.5" /> Media Filter:
           </span>
 
-          {/* With VR / Video Toggle */}
           <button
             type="button"
             onClick={() => setHasVideo(!hasVideo)}
@@ -267,7 +254,6 @@ export default function InteractiveProjectCatalog({ initialProjects }: Interacti
             <span>With VR / Video</span>
           </button>
 
-          {/* With Audio Brief Toggle */}
           <button
             type="button"
             onClick={() => setHasAudio(!hasAudio)}
@@ -283,40 +269,30 @@ export default function InteractiveProjectCatalog({ initialProjects }: Interacti
         </div>
       </div>
 
-      {/* PROJECTS GRID */}
+      {/* PROJECTS GRID WITH 3D ROTATOR INTEGRATION */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {filteredProjects.length > 0 ? (
           filteredProjects.map((p) => {
-            const validImage =
-              p.featuredImage &&
-              !p.featuredImage.startsWith('/uploads/') &&
-              !p.featuredImage.includes('/images/projects/placeholders/')
-                ? p.featuredImage
-                : null;
-
             return (
               <div
                 key={p.id}
                 className="bg-[var(--theme-card)] border border-[var(--theme-border)] rounded-2xl overflow-hidden hover:border-[var(--theme-accent)] transition flex flex-col justify-between group shadow-sm"
               >
-                {/* Visual Thumbnail */}
+                {/* 3D Rotator Thumbnail Component */}
                 <div className="relative aspect-[16/10] bg-[var(--theme-surface)] overflow-hidden">
-                  {validImage ? (
-                    <img
-                      src={validImage}
-                      alt={p.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
-                    />
-                  ) : (
-                    <BlueprintPlaceholder title={p.title} category={p.category} />
-                  )}
+                  <Project3DRotator
+                    title={p.title}
+                    category={p.category}
+                    featuredImage={p.featuredImage}
+                    galleryImages={p.galleryImages}
+                  />
 
-                  <div className="absolute top-3 right-3 bg-[var(--theme-surface)]/90 backdrop-blur-md px-2.5 py-1 rounded text-[10px] font-mono text-[var(--theme-accent)] border border-[var(--theme-border)] font-bold">
+                  <div className="absolute top-3 right-3 z-30 bg-[var(--theme-surface)]/90 backdrop-blur-md px-2.5 py-1 rounded text-[10px] font-mono text-[var(--theme-accent)] border border-[var(--theme-border)] font-bold pointer-events-none">
                     {p.category}
                   </div>
 
                   {p.status && (
-                    <div className="absolute bottom-3 left-3 bg-black/75 backdrop-blur-md px-2.5 py-0.5 rounded text-[10px] font-mono text-zinc-300 border border-white/10 uppercase">
+                    <div className="absolute top-3 left-3 z-30 bg-black/75 backdrop-blur-md px-2.5 py-0.5 rounded text-[10px] font-mono text-zinc-300 border border-white/10 uppercase pointer-events-none">
                       {p.status.replace(/_/g, ' ')}
                     </div>
                   )}

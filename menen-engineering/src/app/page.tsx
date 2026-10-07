@@ -23,27 +23,48 @@ export default async function HomePage() {
   let dynamicContentMap: Record<string, string> = {};
   let allProjects: any[] = [];
   let leadershipTeam: any[] = [];
+  let siteConfig: any = {
+    companyName: 'MENEN Engineering PLC',
+    motto: "It's all about commitment!",
+    primaryEmail: 'habtamuengr@gmail.com',
+    primaryPhone: '+251 920 517 606',
+    secondaryPhone: '+251 913 034 623',
+    officeAddress: 'Wello Sefer, behind Garad Mall, GS Building, 2nd Floor Office @ Menen Engineering PLC, Addis Ababa, Ethiopia',
+    legalCategory: 'Category One Architectural & Engineering Firm',
+  };
 
   try {
-    const contents = await prisma.dynamicContent.findMany();
-
-    // Query ALL projects from database without truncation
-    const projects = await prisma.project.findMany({
-      orderBy: [{ isFeatured: 'desc' }, { order: 'asc' }],
-    });
-
-    const team = await prisma.teamMember.findMany({
-      orderBy: [{ isExecutive: 'desc' }, { order: 'asc' }],
-      take: 6,
-    });
+    const [contents, projects, team, config] = await Promise.all([
+      prisma.dynamicContent.findMany(),
+      // Query projects with galleryImages explicitly guaranteed
+      prisma.project.findMany({
+        orderBy: [{ isFeatured: 'desc' }, { order: 'asc' }],
+      }),
+      prisma.teamMember.findMany({
+        orderBy: [{ isExecutive: 'desc' }, { order: 'asc' }],
+        take: 6,
+      }),
+      prisma.siteConfig.findUnique({
+        where: { id: 'global_config' },
+      }),
+    ]);
 
     dynamicContentMap = contents.reduce((acc, curr) => {
       acc[curr.key] = curr.value;
       return acc;
     }, {} as Record<string, string>);
 
-    allProjects = projects;
+    allProjects = projects.map((p) => ({
+      ...p,
+      galleryImages: Array.isArray(p.galleryImages)
+        ? p.galleryImages
+        : p.featuredImage
+        ? [p.featuredImage]
+        : [],
+    }));
+
     leadershipTeam = team;
+    if (config) siteConfig = { ...siteConfig, ...config };
   } catch (error) {
     console.warn('Database query fallback triggered on landing page:', error);
   }
@@ -74,7 +95,7 @@ export default async function HomePage() {
 
         <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-[var(--theme-border)] bg-[var(--theme-surface)] text-[var(--theme-accent)] text-xs font-mono uppercase tracking-wider mb-6 shadow-sm">
           <Award className="w-3.5 h-3.5 shrink-0" />
-          <span>{txt('hero_badge', 'Category One Architectural & Engineering Firm — Addis Ababa')}</span>
+          <span>{txt('hero_badge', `${siteConfig.legalCategory} — Addis Ababa`)}</span>
         </div>
 
         <h1 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-[var(--theme-text-primary)] leading-[1.1] max-w-5xl mx-auto">
@@ -86,26 +107,26 @@ export default async function HomePage() {
         </p>
 
         <div className="mt-4 text-base sm:text-lg font-serif italic text-[var(--theme-accent)] font-semibold tracking-wide">
-          &ldquo;{txt('hero_motto', "It's all about commitment!")}&rdquo;
+          &ldquo;{txt('hero_motto', siteConfig.motto)}&rdquo;
         </div>
 
         {/* Action Buttons */}
         <div className="mt-10 flex flex-wrap justify-center items-center gap-4">
           <Link
             href="#projects-catalog"
-            className="px-7 py-3.5 rounded-lg bg-[var(--theme-accent)] text-black font-bold text-sm tracking-wide hover:opacity-95 transition flex items-center gap-2 shadow-lg"
+            className="px-7 py-3.5 rounded-lg bg-[var(--theme-accent)] text-black font-bold text-sm tracking-wide hover:opacity-95 transition flex items-center gap-2 shadow-lg cursor-pointer"
           >
             Explore All Projects &darr;
           </Link>
           <Link
             href="/submit-project"
-            className="px-7 py-3.5 rounded-lg border border-[var(--theme-border)] bg-[var(--theme-surface)] hover:border-[var(--theme-accent)] text-[var(--theme-text-primary)] font-medium text-sm transition shadow-sm"
+            className="px-7 py-3.5 rounded-lg border border-[var(--theme-border)] bg-[var(--theme-surface)] hover:border-[var(--theme-accent)] text-[var(--theme-text-primary)] font-medium text-sm transition shadow-sm cursor-pointer"
           >
             Submit Project Brief
           </Link>
           <Link
             href="/team"
-            className="px-7 py-3.5 rounded-lg text-xs font-mono text-[var(--theme-text-secondary)] hover:text-[var(--theme-accent)] transition"
+            className="px-7 py-3.5 rounded-lg text-xs font-mono text-[var(--theme-text-secondary)] hover:text-[var(--theme-accent)] transition cursor-pointer"
           >
             View Specialists &rarr;
           </Link>
@@ -225,7 +246,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* 4. COMPLETE LANDMARK PROJECTS CATALOG WITH LIVE SEARCH & FILTERS */}
+      {/* 4. COMPLETE LANDMARK PROJECTS CATALOG (3D ROTATION ACTIVATED) */}
       <section id="projects-catalog" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 scroll-mt-20">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-8 gap-4">
           <div>
@@ -236,7 +257,7 @@ export default async function HomePage() {
               All Landmark Projects ({allProjects.length})
             </h2>
             <p className="text-xs text-[var(--theme-text-secondary)] mt-1">
-              Search and filter across all commercial, residential, infrastructure, and institutional projects.
+              Search and filter across all commercial, residential, infrastructure, and institutional projects with active 3D visualization.
             </p>
           </div>
 
@@ -248,7 +269,7 @@ export default async function HomePage() {
           </Link>
         </div>
 
-        {/* Interactive Client Search & Filter Component */}
+        {/* Interactive Client Search & Filter Component with 3D Rotator */}
         <InteractiveProjectCatalog initialProjects={allProjects} />
       </section>
 
@@ -332,7 +353,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* 6. CALL TO ACTION */}
+      {/* 6. CALL TO ACTION & DIRECT CONTACT DISPATCH */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bg-[var(--theme-card)] border border-[var(--theme-border)] p-8 sm:p-12 rounded-3xl relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-8 shadow-xl">
           <div className="max-w-2xl">
@@ -343,20 +364,24 @@ export default async function HomePage() {
               Have an Architectural or Structural Project in Mind?
             </h2>
             <p className="text-xs sm:text-sm text-[var(--theme-text-secondary)] mt-2 leading-relaxed">
-              Submit your project brief with specifications, site dimensions, or multimedia walkthroughs. Eng. Habtamu Getu and our engineering board will review and furnish an analysis.
+              Submit your project brief with specifications, site dimensions, or multimedia walkthroughs. Direct email inquiries are routed directly to{' '}
+              <a href={`mailto:${siteConfig.primaryEmail}`} className="text-[var(--theme-accent)] font-mono font-semibold underline">
+                {siteConfig.primaryEmail}
+              </a>
+              .
             </p>
           </div>
 
           <div className="shrink-0 flex flex-col sm:flex-row gap-3">
             <Link
               href="/submit-project"
-              className="px-6 py-3 rounded-lg bg-[var(--theme-accent)] text-black font-bold text-xs uppercase tracking-wider hover:opacity-90 transition text-center shadow-lg"
+              className="px-6 py-3 rounded-lg bg-[var(--theme-accent)] text-black font-bold text-xs uppercase tracking-wider hover:opacity-90 transition text-center shadow-lg cursor-pointer"
             >
               Submit Project Brief
             </Link>
             <Link
               href="/contact"
-              className="px-6 py-3 rounded-lg border border-[var(--theme-border)] bg-[var(--theme-surface)] text-[var(--theme-text-primary)] font-semibold text-xs uppercase tracking-wider hover:border-[var(--theme-accent)] transition text-center"
+              className="px-6 py-3 rounded-lg border border-[var(--theme-border)] bg-[var(--theme-surface)] text-[var(--theme-text-primary)] font-semibold text-xs uppercase tracking-wider hover:border-[var(--theme-accent)] transition text-center cursor-pointer"
             >
               Contact Office
             </Link>
