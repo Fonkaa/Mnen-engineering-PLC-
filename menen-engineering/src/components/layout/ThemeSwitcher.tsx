@@ -36,7 +36,7 @@ export default function ThemeSwitcher() {
         aria-label="Palette Switcher"
       >
         <Palette className="w-3.5 h-3.5 text-[var(--theme-accent)]" />
-        <span className="hidden sm:inline font-mono">Palette</span>
+        <span className="hidden sm:inline font-mono">Color</span>
       </button>
 
       {isOpen && (

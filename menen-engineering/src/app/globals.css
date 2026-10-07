@@ -91,3 +91,38 @@ body {
 .pause-spin {
   animation-play-state: paused;
 }
+@keyframes spinLogo360 {
+  0% {
+    transform: rotateY(0deg) rotateX(4deg);
+  }
+  50% {
+    transform: rotateY(180deg) rotateX(-4deg);
+  }
+  100% {
+    transform: rotateY(360deg) rotateX(4deg);
+  }
+}
+
+@keyframes fourColorCycle {
+  0% {
+    background: radial-gradient(circle at 30% 40%, rgba(3, 9, 30, 0.45) 0%, rgba(0, 102, 204, 0.25) 45%, transparent 70%);
+  }
+  33% {
+    background: radial-gradient(circle at 60% 50%, rgba(0, 102, 204, 0.35) 0%, rgba(16, 185, 129, 0.25) 45%, transparent 70%);
+  }
+  66% {
+    background: radial-gradient(circle at 45% 60%, rgba(16, 185, 129, 0.3) 0%, rgba(212, 175, 55, 0.25) 45%, transparent 70%);
+  }
+  100% {
+    background: radial-gradient(circle at 30% 40%, rgba(3, 9, 30, 0.45) 0%, rgba(0, 102, 204, 0.25) 45%, transparent 70%);
+  }
+}
+
+.animate-four-colors {
+  animation: fourColorCycle 12s ease-in-out infinite alternate;
+}
+
+.animate-monument-spin {
+  animation: spinLogo360 22s linear infinite;
+  transform-style: preserve-3d;
+}
