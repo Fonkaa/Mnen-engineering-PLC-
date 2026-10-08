@@ -9,6 +9,9 @@ import { MapPin, Phone, Mail } from 'lucide-react';
 export const metadata: Metadata = {
   title: 'MENEN Engineering PLC | Category One Architectural & Engineering Design Firm',
   description: "It's all about commitment! Delivering well-targeted, unique architectural, structural, and masterplan solutions in Addis Ababa and beyond.",
+  verification: {
+    google: 'R1TXvgqXYAIoPTKxNQkkeTNA3uT_qxwaVXIczd5UvCc',
+  },
 };
 
 export default async function RootLayout({
@@ -188,7 +191,7 @@ export default async function RootLayout({
         </footer>
 
         {/* Discreet Trigger for Emergency Recovery */}
-       {/* <SecretAdminTrigger /> */}
+        {/* <SecretAdminTrigger /> */}
       </body>
     </html>
   );
