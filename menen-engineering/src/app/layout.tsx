@@ -12,6 +12,10 @@ export const metadata: Metadata = {
   verification: {
     google: 'R1TXvgqXYAIoPTKxNQkkeTNA3uT_qxwaVXIczd5UvCc',
   },
+  robots: {
+    index: false,
+    follow: false,
+  },
 };
 
 export default async function RootLayout({
